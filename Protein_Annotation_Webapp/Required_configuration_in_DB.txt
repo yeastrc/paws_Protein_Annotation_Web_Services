@@ -1,0 +1,23 @@
+
+
+This web app submits jobs to the JobCenter system.
+
+
+The JobCenter system needs to be updated to accept job submissions from this application.
+
+See Protein_Annotation_Database/trunk/JobcenterAdditions.sql
+
+
+The configuration of this APP in the paws database
+
+  Configuration is done with entries in the table config_system.
+
+    It needs an entry for where to submit the Jobcenter jobs to.
+
+	See class org.yeastrc.paws.www.constants.ConfigSystemsKeysConstants.JOB_SUBMISSION_URL for the key to use in the table.
+	
+	It needs an entry for where the modules send their results to.
+	See class org.yeastrc.paws.www.constants.ConfigSystemsKeysConstants.SERVER_URL_FOR_MODULE_DATA_KEY for the key to use in the table.
+	
+	
+

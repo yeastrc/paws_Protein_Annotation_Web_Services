@@ -1,0 +1,4 @@
+
+The contents of the file 'ncbirc' needs to be saved 
+in a file named '.ncbirc' in the directory
+where disopred2 is run. 

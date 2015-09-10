@@ -1,0 +1,40 @@
+
+
+From DISOPRED3 README file
+
+
+
+Here is the output of a successful DISOPRED run for the file examples/example.fasta:
+
+./run_disopred.pl examples/example.fasta
+
+Running PSI-BLAST search ...
+
+Generating PSSM ...
+
+Predicting disorder with DISOPRED2 ...
+
+Running neural network classifier ...
+
+Running nearest neighbour classifier ...
+
+Combining disordered residue predictions ...
+
+Predicting protein binding residues within disordered regions ...
+
+Cleaning up ...
+
+Finished
+
+Disordered residue predictions in absolute-path/examples/example.diso
+
+Protein binding disordered residue predictions in absolute-path/examples/example.pbdat
+
+
+example.diso:
+
+Results are saved in plain ASCII text format. Disordered region predictions are presented
+in tabular format with four fields on each line representing the amino acid position, the
+residue single letter code, the order/disorder assignment code, and the corresponding
+confidence level. Ordered residues are marked with dots (.) and have scores in [0.00, 0.49];
+disordered residues are labelled with asterisks (*) and are scored in [0.50, 1.00].

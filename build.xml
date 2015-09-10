@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="US-ASCII" ?>
+<project name="PAWS_Root_Build_All" default="createInstallables" basedir=".">
+
+
+	<!-- The same name cannot be used more than once for a property   -->
+
+  <target name="init">
+    <tstamp/>
+
+
+  	<!-- name of jar or whatever that is copied to deploy -->
+
+    <property name="installationName_RunDisopred_2" value="paws_run_disopred_2_installation" />
+
+    <property name="installationName_RunDisopred_3" value="paws_run_disopred_3_installation" />
+
+    <property name="installationName_RunPsipred_3" value="paws_run_psipred_3_installation" />
+
+	<!-- common jars for this group  -->
+    <property name="common_jar" value="paws_base.jar" />
+  	
+    <property name="common_jc_module_jar" value="paws_jc_module_base.jar" />
+  	
+  	<!--  common lib dir to copy to all deployables  -->
+  	
+    <property name="common_lib_dir" value="Protein_Annotation_Jobcenter_Modules/JobcenterModulesCommon/lib" />
+  	
+  	
+  	
+
+    <property name="src" value="src" />
+    <property name="build" value="build" />
+    <property name="classes" value="classes" />
+    <property name="deploy" value="deploy" />
+    <property name="config" value="resources" />
+    <property name="runDir" value="." />
+    <property name="local" value="local" />
+    <property name="remote" value="remote" />
+    <property name="lib" value="lib" />
+  </target>
+
+  <target name="clean" depends="init">
+    <delete dir="${deploy}" />
+    <delete dir="generated_jars" />
+    <delete dir="installables" />
+  </target>
+
+  <target name="prepare" depends="clean">
+    <mkdir dir="${deploy}" />
+    <mkdir dir="generated_jars" />
+    <mkdir dir="installables" />
+  </target>
+
+
+
+
+
+  <target name="compileAllSubmodules" depends="prepare">
+	<ant dir="Protein_Annotation_Base" /> <!--  run default build.xml and default ant task in this directory -->
+	<ant dir="Protein_Annotation_Jobcenter_Modules/JobcenterModulesCommon" /> <!--  run default build.xml and default ant task in this directory -->
+	<ant dir="Protein_Annotation_Jobcenter_Modules/DISOPRED_2" /> <!--  run default build.xml and default ant task in this directory -->
+	<ant dir="Protein_Annotation_Jobcenter_Modules/DISOPRED_3" /> <!--  run default build.xml and default ant task in this directory -->
+	<ant dir="Protein_Annotation_Jobcenter_Modules/PSIPRED_3" /> <!--  run default build.xml and default ant task in this directory -->
+
+<!--
+  <ant antfile="subproject/subbuild.xml" target="compile"/>
+-->
+  </target>
+
+
+
+ <target name="init_createInstallables" depends="compileAllSubmodules" > <!--  depends="compileAllSubmodules" -->
+    <delete dir="installables" />
+
+
+    <mkdir dir="installables" />
+
+  </target>
+
+
+
+  <!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ -->
+
+
+  <!--   Process DISOPRED 2 File Module to run in JobCenter -->
+
+  <target name="createInstallable_RunDisopred_2">
+
+  	<!-- subdirectory being processed -->
+    <property name="subdirectoryName_RunDisopred_2" value="Protein_Annotation_Jobcenter_Modules/DISOPRED_2" />
+
+  	<!-- main jar in subdirectory being processed -->
+    <property name="subdirectoryMainJar_RunDisopred_2" value="paws_run_disopred_2.jar" />
+
+
+    <mkdir dir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}" />
+
+
+
+	<mkdir dir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}" />
+	<mkdir dir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}/config" />
+	<mkdir dir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}/lib" />
+	<mkdir dir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}/main_jar" />
+
+	<mkdir dir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}/config_sample_files" />
+
+<!--		
+  	<copy todir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}/lib" >
+  		    <fileset dir="${subdirectoryName_RunDisopred_2}/lib">
+
+	    </fileset>
+  	</copy>
+-->  	
+
+  	<copy todir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}/lib" >
+  		    <fileset dir="${common_lib_dir}">
+	    </fileset>
+  	</copy>
+
+  	
+  	
+  	<copy file="generated_jars/${common_jar}" todir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}/lib" />
+  	<copy file="generated_jars/${common_jc_module_jar}" todir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}/lib" />
+  	
+  	<copy file="generated_jars/${subdirectoryMainJar_RunDisopred_2}" todir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}/main_jar" />
+
+<!--
+	<copy file="general_files_for_installables/${installationName_RunDisopred_2}/config_sample_files_directory_explanation.txt" todir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}/config_sample_files" />
+-->
+  	<copy todir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}/config_sample_files" >
+  		    <fileset dir="${subdirectoryName_RunDisopred_2}/config_sample_files">
+	    </fileset>
+  	</copy>
+
+<!--
+  	<copy todir="installables/${installationName_RunDisopred_2}/${installationName_RunDisopred_2}/config" >
+  		    <fileset dir="${installationName_RunDisopred_2}/config">
+	    </fileset>
+  	</copy>
+-->
+
+
+
+
+
+
+    <jar jarfile="${deploy}/${installationName_RunDisopred_2}.jar" basedir="installables/${installationName_RunDisopred_2}" />
+
+
+  </target>
+
+	  <!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ -->
+
+
+	  <!--   Process DISOPRED 3 File Module to run in JobCenter -->
+
+	  <target name="createInstallable_RunDisopred_3">
+
+	  	<!-- subdirectory being processed -->
+	    <property name="subdirectoryName_RunDisopred_3" value="Protein_Annotation_Jobcenter_Modules/DISOPRED_3" />
+
+	  	<!-- main jar in subdirectory being processed -->
+	    <property name="subdirectoryMainJar_RunDisopred_3" value="paws_run_disopred_3.jar" />
+
+
+	    <mkdir dir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}" />
+
+
+
+		<mkdir dir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}" />
+		<mkdir dir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}/config" />
+		<mkdir dir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}/lib" />
+		<mkdir dir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}/main_jar" />
+
+		<mkdir dir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}/config_sample_files" />
+
+<!--			
+	  	<copy todir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}/lib" >
+	  		    <fileset dir="${subdirectoryName_RunDisopred_3}/lib">
+		    </fileset>
+	  	</copy>
+-->
+	  		    	
+	  	<copy todir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}/lib" >
+	  		    <fileset dir="${common_lib_dir}">
+		    </fileset>
+	  	</copy>
+
+	  	<copy file="generated_jars/${common_jar}" todir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}/lib" />
+	  	<copy file="generated_jars/${common_jc_module_jar}" todir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}/lib" />
+	  	
+	  	<copy file="generated_jars/${subdirectoryMainJar_RunDisopred_3}" todir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}/main_jar" />
+
+	<!--
+		<copy file="general_files_for_installables/${installationName_RunDisopred_3}/config_sample_files_directory_explanation.txt" todir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}/config_sample_files" />
+	-->
+	  	<copy todir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}/config_sample_files" >
+	  		    <fileset dir="${subdirectoryName_RunDisopred_3}/config_sample_files">
+		    </fileset>
+	  	</copy>
+
+	<!--
+	  	<copy todir="installables/${installationName_RunDisopred_3}/${installationName_RunDisopred_3}/config" >
+	  		    <fileset dir="${installationName_RunDisopred_3}/config">
+		    </fileset>
+	  	</copy>
+	-->
+
+
+
+
+
+
+	    <jar jarfile="${deploy}/${installationName_RunDisopred_3}.jar" basedir="installables/${installationName_RunDisopred_3}" />
+
+
+	  </target>
+
+
+	  <!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ -->
+
+
+	  <!--   Process Psipred 3 File Module to run in JobCenter -->
+
+	  <target name="createInstallable_RunPsipred_3">
+
+	  	<!-- name of jar or whatever that is copied to deploy -->
+
+	<!-- subdirectory being processed -->
+	    <property name="subdirectoryName_RunPsipred_3" value="Protein_Annotation_Jobcenter_Modules/PSIPRED_3" />
+
+	  	<!-- main jar in subdirectory being processed -->
+	    <property name="subdirectoryMainJar_RunPsipred_3" value="paws_run_psipred_3.jar" />
+
+
+	    <mkdir dir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}" />
+
+	<!--
+		<copy file="general_files_for_installables/README_General_Overview.txt" todir="installables/jobmanager_client_installation" />
+
+	-->
+
+
+		<mkdir dir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}" />
+		<mkdir dir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}/config" />
+		<mkdir dir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}/lib" />
+		<mkdir dir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}/main_jar" />
+
+		<mkdir dir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}/config_sample_files" />
+
+<!--
+	  	<copy todir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}/lib" >
+	  		    <fileset dir="${subdirectoryName_RunPsipred_3}/lib">
+		    </fileset>
+	  	</copy>
+-->
+	  		
+	  	<copy todir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}/lib" >
+	  		    <fileset dir="${common_lib_dir}">
+		    </fileset>
+	  	</copy>
+
+	  	
+	  	<copy file="generated_jars/${common_jar}" todir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}/lib" />
+	  	<copy file="generated_jars/${common_jc_module_jar}" todir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}/lib" />
+	  	
+	  	<copy file="generated_jars/${subdirectoryMainJar_RunPsipred_3}" todir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}/main_jar" />
+
+	<!--
+		<copy file="general_files_for_installables/${installationName_RunPsipred_3}/config_sample_files_directory_explanation.txt" todir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}/config_sample_files" />
+	-->
+	  	<copy todir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}/config_sample_files" >
+	  		    <fileset dir="${subdirectoryName_RunPsipred_3}/config_sample_files">
+		    </fileset>
+	  	</copy>
+
+	<!--
+	  	<copy todir="installables/${installationName_RunPsipred_3}/${installationName_RunPsipred_3}/config" >
+	  		    <fileset dir="${installationName_RunPsipred_3}/config">
+		    </fileset>
+	  	</copy>
+	-->
+
+
+
+
+
+
+	    <jar jarfile="${deploy}/${installationName_RunPsipred_3}.jar" basedir="installables/${installationName_RunPsipred_3}" />
+
+
+
+
+
+
+
+
+	  </target>
+
+
+	  <!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ -->
+
+	<!--  make all fake target -->
+
+  <target name="createInstallables" depends="compileAllSubmodules, init_createInstallables, createInstallable_RunDisopred_2, createInstallable_RunDisopred_3, createInstallable_RunPsipred_3" >
+	
+
+
+  </target>
+
+
+</project>

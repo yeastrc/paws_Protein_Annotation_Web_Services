@@ -1,0 +1,25 @@
+package org.yeastrc.paws.dto;
+
+public class DisopredParsedResults {
+
+	private DisopredParsedDisorderedResiduesPredictions disopredParsedDisorderedResiduesPredictions;
+	private DisopredParsedProteinBindingDisorderedResiduesPredictions disopredParsedProteinBindingDisorderedResiduesPredictions;
+
+	public DisopredParsedProteinBindingDisorderedResiduesPredictions getDisopredParsedProteinBindingDisorderedResiduesPredictions() {
+		return disopredParsedProteinBindingDisorderedResiduesPredictions;
+	}
+
+	public void setDisopredParsedProteinBindingDisorderedResiduesPredictions(
+			DisopredParsedProteinBindingDisorderedResiduesPredictions disopredParsedProteinBindingDisorderedResiduesPredictions) {
+		this.disopredParsedProteinBindingDisorderedResiduesPredictions = disopredParsedProteinBindingDisorderedResiduesPredictions;
+	}
+
+	public DisopredParsedDisorderedResiduesPredictions getDisopredParsedDisorderedResiduesPredictions() {
+		return disopredParsedDisorderedResiduesPredictions;
+	}
+
+	public void setDisopredParsedDisorderedResiduesPredictions(
+			DisopredParsedDisorderedResiduesPredictions disopredParsedDisorderedResiduesPredictions) {
+		this.disopredParsedDisorderedResiduesPredictions = disopredParsedDisorderedResiduesPredictions;
+	}
+}

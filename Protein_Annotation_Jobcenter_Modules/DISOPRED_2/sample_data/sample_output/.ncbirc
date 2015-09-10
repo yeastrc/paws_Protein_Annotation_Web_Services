@@ -1,0 +1,5 @@
+[NCBI]
+data=/data/paws/blast/blast-2.2.26/data
+
+[BLAST]
+BLASTMAT=/data/paws/blast/blast-2.2.26/data

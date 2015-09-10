@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project basedir="." name="PAWS DISOPRED 2 run build jar" default="build_jar">
+
+
+	
+	<property name="java_target" value="1.6"/>
+	<property name="java_source" value="1.6"/>
+		
+	
+
+		
+	<property name="output_jar" value="paws_run_disopred_2.jar"/>
+	
+    <property name="deploy" value="deploy" />
+    <property name="config" value="resources" />
+
+	<property name="src" value="src" />
+	<property name="classes" value="classes" />	
+
+	
+	
+	<property name="aa_Ant_Config__dir_name" value="aa_Ant_Config" />
+
+	<property name="path_to__aa_Ant_Config" value="..${file.separator}..${file.separator}${aa_Ant_Config__dir_name}" />
+
+	
+	<fail message="ERROR: 'aa_Ant_Config' directory not found at SVN checkout root, check the path. path: ${path_to__aa_Ant_Config}">
+	    <condition>
+	        <not>
+	        	<available file="${path_to__aa_Ant_Config}" />
+	        </not>
+	    </condition>
+	</fail>
+	
+	
+	<!-- ================================================================================== -->
+	<!--  repository wide overall Ant properties in overall_build_config.properties -->
+	<!-- ================================================================================== -->
+	
+	
+	<property name="overall_build_config.properties__file_with_path" 
+		value="${path_to__aa_Ant_Config}${file.separator}overall_build_config.properties"/>
+		
+	<fail message="ERROR: 'overall_build_config.properties' file not found, check the path. filename with path: ${overall_build_config.properties__file_with_path}">
+	<condition>
+	    <not>
+	    	<available file="${overall_build_config.properties__file_with_path}" />
+	    </not>
+	</condition>
+	</fail>
+	
+	<!-- This does not fail if the file is not found -->
+	<property file="${overall_build_config.properties__file_with_path}" />
+	
+	
+	
+			
+	
+	<!-- ================================================================================== -->
+	<!-- user defined values can be defined in build.properties -->
+	<!-- ================================================================================== -->
+	<property file="${basedir}${file.separator}build.properties" />
+	
+	<!-- ================================================================================== -->
+  	<!-- PRINT HELP -->
+	<!-- ================================================================================== -->
+	<target name="help"   description="print this help">
+		<exec executable="ant">
+	   		<arg value="-p"/>
+	  	</exec>
+	</target>
+
+	
+	<!-- ================================================================================== -->
+	<!-- Create a Manifest.MF file with the SVN info -->
+	<!-- ================================================================================== -->
+	<target name="manifest" depends="prepare">
+		<manifest file="${basedir}/MANIFEST.MF">
+			<attribute name="Date" value="${build-info.current-date}" />
+			<attribute name="Time" value="${build-info.current-time}" />
+		</manifest>
+	</target>
+	
+	<!-- Check timestamp on files -->
+    <target name="prepare">
+    	<tstamp prefix="build-info">
+			<format property="current-date" pattern="d-MMMM-yyyy" locale="en" />
+			<format property="current-time" pattern="hh:mm:ss a z" locale="en" />
+			<format property="year-month-day" pattern="yyyy-MM-dd" locale="en" />
+		</tstamp>
+
+    </target>
+	
+	<!-- ================================================================================== -->
+	<!-- Build the jar -->
+	<!-- ================================================================================== -->
+	<target name="build_jar" depends="compile,manifest"
+			description="Packages the project as a jar file">
+		
+		
+		<!-- exclude everything in the default package-->
+		<jar destfile="${basedir}${file.separator}${deploy}${file.separator}${output_jar}" 
+			basedir="${basedir}${file.separator}${classes}"
+			manifest="${basedir}/MANIFEST.MF">
+
+			<!--  			excludes="*.*"  --> 
+			
+		</jar>
+		
+
+	  	<copy file="${deploy}/${output_jar}" todir="../../generated_jars" />
+
+		
+	</target>
+	
+	<!-- ================================================================================== -->
+	<!-- Clean the build directory -->
+	<!-- ================================================================================== -->
+    <target name="clean" description="Prepare for clean build">
+      <delete dir="${classes}"/>
+      <mkdir  dir="${classes}"/>
+      <delete dir="${deploy}" />
+      <mkdir  dir="${deploy}"/>
+    </target>
+	
+	<!-- ================================================================================== -->
+	<!-- Normal build of application -->
+	<!-- ================================================================================== -->
+    <target name="compile" depends="clean">
+    	<!-- <echo message="${toString:compile.classpath}"/> -->
+        <javac debug="on" srcdir="src" destdir="${classes}" source="${java_source}" target="${java_target}"  encoding="${java.source.character.set}" >
+            <classpath refid="compile.classpath"/>
+        </javac>
+
+  	<copy  todir="${classes}">
+
+	    <fileset dir="${config}">
+
+	    	<!--
+			<include name="**/*.properties" />
+	    	-->
+	    </fileset>
+	</copy>
+
+  	  	<copy  todir="${classes}">
+  	  		
+  		    <fileset dir="${src}">
+  				<exclude name="**/*.java" />
+  		    </fileset>
+  		</copy>
+  		
+    </target>
+	
+	<!-- classpath  -->
+    <path id="compile.classpath">
+<!--
+    	<fileset dir="lib">
+        	<include name="**/*.jar"/>
+      	</fileset>
+-->    	
+    	<fileset dir="lib_compile_only">
+        	<include name="**/*.jar"/>
+      	</fileset>    	
+    	
+		<fileset dir="../../generated_jars/">
+			<include name="*.jar"/>
+		</fileset>
+    </path>
+		
+
+</project>
