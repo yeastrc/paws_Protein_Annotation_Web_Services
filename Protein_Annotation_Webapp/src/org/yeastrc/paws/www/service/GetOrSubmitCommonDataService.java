@@ -225,7 +225,10 @@ public class GetOrSubmitCommonDataService {
 
 
 			
-			JobSubmissionInterface jobSubmissionClient = new SubmissionClientConnectionToServer();
+//			JobSubmissionInterface jobSubmissionClient = new SubmissionClientConnectionToServer();
+			
+
+			SubmissionClientConnectionToServer jobSubmissionClient = new SubmissionClientConnectionToServer();
 			
 			jobSubmissionClient.setNodeName( JobcenterForWebAppConstants.JOB_SUBMISSION_NODE_NAME );
 
@@ -261,6 +264,18 @@ public class GetOrSubmitCommonDataService {
 
 					log.error( msg + e.toString(), e );
 				}
+			}
+			
+			if ( log.isDebugEnabled() ) {
+			
+				byte[] submitJobRequestMarshalledLastSent = jobSubmissionClient.getSubmitJobRequestMarshalledLastSent();
+				
+				String submitJobRequestMarshalledLastSentString = new String( submitJobRequestMarshalledLastSent, "UTF-8" );
+				
+				log.debug( "XML sent to Jobcenter for request: annotationType: " + annotationType 
+						+ ", annotationTypeId: " + annotationTypeId
+						+ ", returned jobcenterRequestId: " + jobcenterRequestId
+						+ ", XML: "+  submitJobRequestMarshalledLastSentString );
 			}
 
 		} catch ( Throwable e ) {
