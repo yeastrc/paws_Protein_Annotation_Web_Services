@@ -17,6 +17,11 @@ import org.apache.log4j.Logger;
 import org.yeastrc.paws.base.constants.InternalRestWebServicePathsConstants;
 import org.yeastrc.paws.base.constants.ModuleRunProgramStatusConstants;
 import org.yeastrc.paws.base.constants.RestWebServiceQueryStringAndFormFieldParamsConstants;
+import org.yeastrc.paws.www.constants.AnnotationDataRunStatusConstants;
+import org.yeastrc.paws.www.dao.AnnotationDataDAO;
+import org.yeastrc.paws.www.dao.AnnotationProcessingTrackingDAO;
+import org.yeastrc.paws.www.dto.AnnotationDataDTO;
+import org.yeastrc.paws.www.dto.AnnotationProcessingTrackingDTO;
 import org.yeastrc.paws.www.service.InternalSaveAnnotationJSONToDBService;
 
 
@@ -24,26 +29,21 @@ import org.yeastrc.paws.www.service.InternalSaveAnnotationJSONToDBService;
  * Not for External Access
  *
  */
-@Path( InternalRestWebServicePathsConstants.INTERNAL_SAVE_ANNOTATION_JSON_TO_DB )
+@Path( InternalRestWebServicePathsConstants.INTERNAL_REST_EXTENSION_BASE_INTERNAL_ONLY 
+		+ InternalRestWebServicePathsConstants.INTERNAL_SAVE_ANNOTATION_JSON_TO_DB )
 
 public class InternalSaveAnnotationJSONToDBWebservice {
 
 	Logger log = Logger.getLogger(InternalSaveAnnotationJSONToDBWebservice.class);
 
-
-
 	/////////////////////////////////////////////////////////
 
 	////////////   Handle "POST" of form 
 
-
-
 	/**
-	 * @param annotationType
+	 * @param trackingIdString
 	 * @param annotationData
-	 * @param sequenceIdString
-	 * @param ncbiTaxonomyIdString
-	 * @param jobcenterRequestIdString
+	 * @param status
 	 * @param request
 	 * @return
 	 */
@@ -51,20 +51,17 @@ public class InternalSaveAnnotationJSONToDBWebservice {
 	@Consumes( MediaType.APPLICATION_FORM_URLENCODED )
 	@Produces( { MediaType.TEXT_PLAIN } )
 	public String processSubmitWithPOST( 
-			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_ANNOTATION_TYPE ) @DefaultValue("") String annotationType,
+			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_TRACKING_ID ) @DefaultValue("") String trackingIdString,
 			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_ANNOTATION_DATA ) @DefaultValue("") String annotationData,
-			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE_ID ) @DefaultValue("") String sequenceIdString,
-			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID ) @DefaultValue("") String ncbiTaxonomyIdString,
-			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_JOBCENTER_REQUEST_ID ) @DefaultValue("") String jobcenterRequestIdString,
 			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_STATUS ) @DefaultValue("") String status,
 			@Context HttpServletRequest request ) {
 
 		if ( log.isDebugEnabled() ) {
 
-			log.debug( "processSubmitWithPOSTJSON(...) called, " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE_ID + ": " + sequenceIdString );
+			log.debug( "processSubmitWithPOSTJSON(...) called, " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_TRACKING_ID + ": " + trackingIdString );
 		}
 
-		return processSubmitInternal( annotationType, annotationData, sequenceIdString, ncbiTaxonomyIdString, jobcenterRequestIdString, status, request );
+		return processSubmitInternal( trackingIdString, annotationData, status, request );
 	}
 
 
@@ -75,219 +72,178 @@ public class InternalSaveAnnotationJSONToDBWebservice {
 	 * @return
 	 */
 	public String processSubmitInternal(
-			String annotationType,
-			String annotationData,
-			String sequenceIdString,
-			String ncbiTaxonomyIdString,
-			String jobcenterRequestIdString,
-			String status,
+			String trackingIdString,
+			String newAnnotationData,
+			String statusFromModule,
 			HttpServletRequest request ) {
 
-		if ( log.isDebugEnabled() ) {
+		try {
 
-			log.debug( "processSubmitInternal(...) called, " 
-					+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID + ": " + ncbiTaxonomyIdString 
-					+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE_ID + ": " + sequenceIdString );
-		}
+			if ( log.isDebugEnabled() ) {
 
-		String accept = request.getHeader("accept");
+				log.debug( "processSubmitInternal(...) called, " 
+						+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_TRACKING_ID + ": " + trackingIdString );
+			}
 
-		if ( log.isDebugEnabled() ) {
+			String accept = request.getHeader("accept");
 
-			log.debug( "processSubmitInternal(...) called, accept: " + accept );
-		}
+			if ( log.isDebugEnabled() ) {
 
-		
+				log.debug( "processSubmitInternal(...) called, accept: " + accept );
+			}
 
-		if ( StringUtils.isEmpty( annotationData ) ) {
-			
-			annotationData = null; //  If is empty string, set to null to keep database field NULL
-			
-			if ( ModuleRunProgramStatusConstants.STATUS_SUCCESS.equals( status ) ) {
-				
-				//  Require annotation data if status is success
+
+			if ( StringUtils.isEmpty( newAnnotationData ) ) {
+
+				newAnnotationData = null; //  If is empty string, set to null to keep database field NULL
+
+				if ( ModuleRunProgramStatusConstants.STATUS_SUCCESS.equals( statusFromModule ) ) {
+
+					//  Require annotation data if status is success
+
+					String msg = "'" + InternalRestWebServicePathsConstants.INTERNAL_SAVE_ANNOTATION_JSON_TO_DB
+							+ "' form param '" 
+							+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_ANNOTATION_DATA
+							+ "' is not provided or is empty.";
+
+					log.error( msg );
+
+					throw new WebApplicationException(
+							Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
+							.entity( msg )
+							.build()
+							);
+				}
+			}
+
+
+
+			if ( StringUtils.isEmpty( trackingIdString ) ) {
 
 				String msg = "'" + InternalRestWebServicePathsConstants.INTERNAL_SAVE_ANNOTATION_JSON_TO_DB
 						+ "' form param '" 
-						+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_ANNOTATION_DATA
+						+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_TRACKING_ID
 						+ "' is not provided or is empty.";
 
 				log.error( msg );
-
-
 				throw new WebApplicationException(
 						Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
 						.entity( msg )
 						.build()
 						);
-				
 			}
-		}
-		
-		
 
-		if ( StringUtils.isEmpty( annotationType ) ) {
+			int trackingId = 0;
 
-			String msg = "'" + InternalRestWebServicePathsConstants.INTERNAL_SAVE_ANNOTATION_JSON_TO_DB
-					+ "' form param '" 
-					+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_ANNOTATION_TYPE
-					+ "' is not provided or is empty.";
+			try {
+				trackingId = Integer.parseInt( trackingIdString );
 
-			log.error( msg );
+			} catch ( Exception e ) {
+				String msg = "'" + InternalRestWebServicePathsConstants.INTERNAL_SAVE_ANNOTATION_JSON_TO_DB
+						+ "' form param '" 
+						+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_TRACKING_ID 
+						+ "' is not an integer. Value passed in: " + trackingIdString;
+				log.error( msg );
+				throw new WebApplicationException(
+						Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
+						.entity( msg )
+						.build()
+						);
+			}
 
+			AnnotationProcessingTrackingDTO annotationProcessingTrackingDTO = null;
 
-		    throw new WebApplicationException(
-		    	      Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
-		    	        .entity( msg )
-		    	        .build()
-		    	        );
-		}
-		
-		if ( StringUtils.isEmpty( sequenceIdString ) ) {
-
-			String msg = "'" + InternalRestWebServicePathsConstants.INTERNAL_SAVE_ANNOTATION_JSON_TO_DB
-					+ "' form param '" 
-					+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE_ID
-					+ "' is not provided or is empty.";
-
-			log.error( msg );
-
-
-		    throw new WebApplicationException(
-		    	      Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
-		    	        .entity( msg )
-		    	        .build()
-		    	        );
-		}
-
-
-		if ( StringUtils.isEmpty( ncbiTaxonomyIdString ) ) {
-
-			String msg = "'" + InternalRestWebServicePathsConstants.INTERNAL_SAVE_ANNOTATION_JSON_TO_DB
-					+ "' form param '" 
-					+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID
-					+ "' is not provided or is empty.";
-
-			log.error( msg );
-
-
-		    throw new WebApplicationException(
-		    	      Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
-		    	        .entity( msg )
-		    	        .build()
-		    	        );
-		}
-		
-		
-		if ( StringUtils.isEmpty( jobcenterRequestIdString ) ) {
-
-			String msg = "'" + InternalRestWebServicePathsConstants.INTERNAL_SAVE_ANNOTATION_JSON_TO_DB
-					+ "' form param '" 
-					+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_JOBCENTER_REQUEST_ID
-					+ "' is not provided or is empty.";
-
-			log.error( msg );
-
-
-		    throw new WebApplicationException(
-		    	      Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
-		    	        .entity( msg )
-		    	        .build()
-		    	        );
-		}
-		
-		int ncbiTaxonomyId = 0;
-		int sequenceId = 0;
-		int jobcenterRequestId = 0;
-		
-		try {
+			try {
+				annotationProcessingTrackingDTO = AnnotationProcessingTrackingDAO.getInstance().getById( trackingId );
+			} catch (Exception e) {
+				String msg = " Exception: Get AnnotationProcessingTrackingDTO from DB for: " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_TRACKING_ID + " = " + trackingId;
+				log.error( msg, e );
+				throw new WebApplicationException(
+						Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)
+						.entity( msg )
+						.build()
+						);
+			}
+			if ( annotationProcessingTrackingDTO == null ) {
+				String msg = " AnnotationProcessingTrackingDTO not found in DB for: " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_TRACKING_ID + " = " + trackingId;
+				log.error( msg );
+				throw new WebApplicationException(
+						Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)
+						.entity( msg )
+						.build()
+						);
+			}
 			
-			ncbiTaxonomyId = Integer.parseInt( ncbiTaxonomyIdString );
-			
-		} catch ( Exception e ) {
-			
-			String msg = "'" + InternalRestWebServicePathsConstants.INTERNAL_SAVE_ANNOTATION_JSON_TO_DB
-					+ "' form param '" 
-					+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID 
-					+ "' is not an integer. ";
-			log.error( msg );
+			String newRunStatus = AnnotationDataRunStatusConstants.STATUS_COMPLETE;
 
+			if ( ModuleRunProgramStatusConstants.STATUS_FAIL.equals( statusFromModule ) ) {
 
-			throw new WebApplicationException(
-					Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
-					.entity( msg )
-					.build()
-					);
-			
-		}
-		
-		
-		
-		try {
-			
-			sequenceId = Integer.parseInt( sequenceIdString );
-			
-		} catch ( Exception e ) {
-			
-			String msg = "'" + InternalRestWebServicePathsConstants.INTERNAL_SAVE_ANNOTATION_JSON_TO_DB
-					+ "' form param '" 
-					+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE_ID 
-					+ "' is not an integer. ";
-			log.error( msg );
+				newRunStatus = AnnotationDataRunStatusConstants.STATUS_FAIL;
 
+			} else if ( ! ModuleRunProgramStatusConstants.STATUS_SUCCESS.equals( statusFromModule ) ) {
+				String msg = "Failed:  Module Run status not recognized, status: " + statusFromModule;
+				log.error( msg );
+				throw new WebApplicationException(
+						Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)
+						.entity( msg )
+						.build()
+						);
+			}
 
-			throw new WebApplicationException(
-					Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
-					.entity( msg )
-					.build()
-					);
-			
-		}
-		
-		
-		
-		
-		
-		try {
-			
-			jobcenterRequestId = Integer.parseInt( jobcenterRequestIdString );
-			
-		} catch ( Exception e ) {
-			
-			String msg = "'" + InternalRestWebServicePathsConstants.INTERNAL_SAVE_ANNOTATION_JSON_TO_DB
-					+ "' form param '" 
-					+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_JOBCENTER_REQUEST_ID 
-					+ "' is not an integer. ";
-			log.error( msg );
+			AnnotationDataDTO annotationDataDTO = null;
+			try {
+				annotationDataDTO = 
+						AnnotationDataDAO.getInstance()
+						.getAnnotationDataDTOBySequenceIdAnnotationTypeNCBITaxonomyId(
+								annotationProcessingTrackingDTO.getSequenceId(), annotationProcessingTrackingDTO.getAnnotationTypeId(), annotationProcessingTrackingDTO.getNcbiTaxonomyId() );
+			} catch (Exception e) {
+				String msg = " Fail to Get AnnotationDataDTO from DB for: " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_TRACKING_ID + " = " + trackingId;
+				log.error( msg, e );
+				throw new WebApplicationException(
+						Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)
+						.entity( msg )
+						.build()
+						);
+			}
+			if ( annotationDataDTO == null ) {
+				String msg = " AnnotationDataDTO not found in DB for: " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_TRACKING_ID + " = " + trackingId;
+				log.error( msg );
+				throw new WebApplicationException(
+						Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)
+						.entity( msg )
+						.build()
+						);
+			}
+	
 
+			try {
 
-			throw new WebApplicationException(
-					Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
-					.entity( msg )
-					.build()
-					);
+				String response = 
+						InternalSaveAnnotationJSONToDBService.getInstance().saveAnnotationJSONToDB( newAnnotationData, newRunStatus, annotationProcessingTrackingDTO, annotationDataDTO );
+
+				return response;
+
+			} catch (Exception e) {
+				String msg = "Server Error: Fail to Save annotation data for " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_TRACKING_ID + " = " + trackingId;
+				log.error( msg, e );
+				throw new WebApplicationException(
+						Response.status(javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR)
+						.entity( msg )
+						.build()
+						);
+			}
 			
-		}
-
-		try {
+		} catch ( WebApplicationException e ) {
+			throw e;
 			
-			String response = 
-					InternalSaveAnnotationJSONToDBService.getInstance().saveAnnotationJSONToDB( sequenceId, ncbiTaxonomyId, jobcenterRequestId, annotationType, annotationData, status );
-
-			return response;
-
 		} catch (Exception e) {
-
-			String msg = "Server Error: Fail to Save annotation data for " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE_ID + " = " + sequenceId;
-
+			String msg = "Server Error: " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_TRACKING_ID + " = " + trackingIdString;
 			log.error( msg, e );
-
-		    throw new WebApplicationException(
-		    	      Response.status(javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR)
-		    	        .entity( msg )
-		    	        .build()
-		    	        );
+			throw new WebApplicationException(
+					Response.status(javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR)
+					.entity( msg )
+					.build()
+					);
 		}
-
 	}
 }

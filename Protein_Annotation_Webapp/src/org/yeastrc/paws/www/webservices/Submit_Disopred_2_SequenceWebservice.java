@@ -30,7 +30,6 @@ public class Submit_Disopred_2_SequenceWebservice {
 
 	Logger log = Logger.getLogger(Submit_Disopred_2_SequenceWebservice.class);
 
-
 	/////////////////////////////////////////////////////////
 
 	////////////   Handle "GET"
@@ -48,14 +47,13 @@ public class Submit_Disopred_2_SequenceWebservice {
 	public String processSubmitWithGETJSON( 
 			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE ) @DefaultValue("") String sequenceToProcess,
 			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID ) @DefaultValue("") String ncbiTaxonomyIdString,
+			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST) String batchRequestString,
+			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_ID ) String batchRequestId,
 			@Context HttpServletRequest request ) {
-
 		if ( log.isDebugEnabled() ) {
-
 			log.debug( "processSubmitWithGETJSON(...) called, " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE + ": " + sequenceToProcess );
 		}
-
-		return processSubmitInternal( sequenceToProcess, ncbiTaxonomyIdString, request );
+		return processSubmitInternal( sequenceToProcess, ncbiTaxonomyIdString, batchRequestString, batchRequestId, request );
 	}
 
 	/**
@@ -82,27 +80,21 @@ public class Submit_Disopred_2_SequenceWebservice {
 	public String processSubmitWithGETJSONP( 
 			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE ) @DefaultValue("") String sequenceToProcess,
 			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID ) @DefaultValue("") String ncbiTaxonomyIdString,
+			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST) String batchRequestString,
+			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_ID ) String batchRequestId,
 			@Context HttpServletRequest request ) {
-
 		if ( log.isDebugEnabled() ) {
-
 			log.debug( "processSubmitWithGETJSONP(...) called, " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE + ": " + sequenceToProcess );
 		}
 		
 //		String callbackQueryParamValue = request.getParameter( RestWebServiceJSONP_Constants.CALLBACK_QUERY_PARAMETER );
 
-		return processSubmitInternal( sequenceToProcess, ncbiTaxonomyIdString, request );
+		return processSubmitInternal( sequenceToProcess, ncbiTaxonomyIdString, batchRequestString, batchRequestId, request );
 	}
-
-
 
 	/////////////////////////////////////////////////////////
 
 	////////////   Handle "POST" of form with form param "sequence"
-
-
-
-
 	/**
 	 * This method handles the request for JSON
 	 * @param sequenceToProcess
@@ -117,16 +109,14 @@ public class Submit_Disopred_2_SequenceWebservice {
 	public String processSubmitWithPOSTJSON( 
 			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE ) @DefaultValue("") String sequenceToProcess,
 			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID ) @DefaultValue("") String ncbiTaxonomyIdString,
+			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST) String batchRequestString,
+			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_ID ) String batchRequestId,
 			@Context HttpServletRequest request ) {
-
 		if ( log.isDebugEnabled() ) {
-
 			log.debug( "processSubmitWithPOSTJSON(...) called, " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE + ": " + sequenceToProcess );
 		}
-
-		return processSubmitInternal( sequenceToProcess, ncbiTaxonomyIdString, request );
+		return processSubmitInternal( sequenceToProcess, ncbiTaxonomyIdString, batchRequestString, batchRequestId, request );
 	}
-
 
 	/**
 	 * The internal method that handles all types of requests
@@ -136,34 +126,32 @@ public class Submit_Disopred_2_SequenceWebservice {
 	 * @param request
 	 * @return
 	 */
-	public String processSubmitInternal( String sequenceToProcess,
+	public String processSubmitInternal( 
+			String sequenceToProcess,
 			String ncbiTaxonomyIdString,
+			String batchRequestString, 
+			String batchRequestId,
 			HttpServletRequest request ) {
 
+		String requestingIP = request.getRemoteAddr();
+		
 		if ( log.isDebugEnabled() ) {
-
 			log.debug( "processSubmitInternal(...) called, " 
 					+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID + ": " + ncbiTaxonomyIdString 
 					+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE + ": " + sequenceToProcess );
 		}
 
 		String accept = request.getHeader("accept");
-
 		if ( log.isDebugEnabled() ) {
-
 			log.debug( "processSubmitInternal(...) called, accept: " + accept );
 		}
 
 		if ( StringUtils.isEmpty( sequenceToProcess ) ) {
-
 			String msg = "'" + RestWebServicePathsConstants.SUBMIT_DISOPRED_2
 							+ "' query param is not provided or is empty.  URL must be '"
 							+ RestWebServicePathsConstants.SUBMIT_DISOPRED_2
 							+ "?" + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE + "=xxxx'";
-
 			log.error( msg );
-
-
 		    throw new WebApplicationException(
 		    	      Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
 		    	        .entity( msg )
@@ -171,42 +159,45 @@ public class Submit_Disopred_2_SequenceWebservice {
 		    	        );
 		}
 
-
 		if ( StringUtils.isEmpty( ncbiTaxonomyIdString ) ) {
-
 			String msg = "'" + RestWebServicePathsConstants.SUBMIT_DISOPRED_2
 							+ "' query param is not provided or is empty.  URL must be '"
 							+ RestWebServicePathsConstants.SUBMIT_DISOPRED_2
 							+ "?" + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID + "=###'";
-
 			log.error( msg );
-
-
 		    throw new WebApplicationException(
 		    	      Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
 		    	        .entity( msg )
 		    	        .build()
 		    	        );
 		}
+
+		boolean batchRequest = false;
 		
 		int ncbiTaxonomyId = 0;
+
+		if ( batchRequestString != null && batchRequestString.length() > 0 ) {
+			String batchRequestFirstChar = batchRequestString.substring(0, 1);
+			
+			if ( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_TRUE_Y.equalsIgnoreCase( batchRequestFirstChar )
+					||  RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_TRUE_T.equalsIgnoreCase( batchRequestFirstChar ) ) {
+				
+				batchRequest = true;
+			}
+		}
 		
 		try {
 			
 			ncbiTaxonomyId = Integer.parseInt( ncbiTaxonomyIdString );
 			
 		} catch ( Exception e ) {
-			
 			String msg = "'" + RestWebServicePathsConstants.SUBMIT_DISOPRED_2
 					+ "' query param '" 
 					+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID 
 					+ "' is not an integer.  URL must be '"
 					+ RestWebServicePathsConstants.SUBMIT_DISOPRED_2
 					+ "?" + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID + "=###'";
-
 			log.error( msg );
-
-
 			throw new WebApplicationException(
 					Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
 					.entity( msg )
@@ -215,22 +206,16 @@ public class Submit_Disopred_2_SequenceWebservice {
 			
 		}
 
-		
-		
-		
-
 		try {
-			
-			String response = Process_Disopred_2_SequenceSubmit.getInstance().process_Disopred_2_SequenceSubmit( sequenceToProcess, ncbiTaxonomyId );
+			String response = 
+					Process_Disopred_2_SequenceSubmit.getInstance()
+					.process_Disopred_2_SequenceSubmit( sequenceToProcess, ncbiTaxonomyId, requestingIP, batchRequest, batchRequestId );
 
 			return response;
 
 		} catch (Exception e) {
-
 			String msg = "Server Error: Fail to retrieve results for " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE + " = " + sequenceToProcess;
-
 			log.error( msg, e );
-
 		    throw new WebApplicationException(
 		    	      Response.status(javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR)
 		    	        .entity( msg )

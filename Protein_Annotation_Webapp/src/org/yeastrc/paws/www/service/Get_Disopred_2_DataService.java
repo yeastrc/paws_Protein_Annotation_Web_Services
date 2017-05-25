@@ -23,13 +23,15 @@ public class Get_Disopred_2_DataService {
 	 * @return
 	 * @throws Exception
 	 */
-	public String get_Disopred_2_DataForSequence( String sequenceToProcess, int ncbiTaxonomyId ) throws Exception {
+	public String get_Disopred_2_DataForSequence( String sequenceToProcess, int ncbiTaxonomyId,
+			String requestingIP, boolean batchRequest, String batchRequestId ) throws Exception {
 		
 		
 		
 		int sequenceId = AddSequenceOrGetExistingSequenceId.getInstance().addSequenceOrGetExistingSequenceId( sequenceToProcess );
 		
-		return get_Disopred_2_DataForSequenceSequenceId( sequenceToProcess, sequenceId, ncbiTaxonomyId );
+		return get_Disopred_2_DataForSequenceSequenceId( sequenceToProcess, sequenceId, ncbiTaxonomyId,
+				requestingIP, batchRequest, batchRequestId );
 	}
 	
 	
@@ -39,10 +41,12 @@ public class Get_Disopred_2_DataService {
 	 * @return
 	 * @throws Exception 
 	 */
-	public String get_Disopred_2_DataForSequenceId( int sequenceId, int ncbiTaxonomyId ) throws Exception {
+	public String get_Disopred_2_DataForSequenceId( int sequenceId, int ncbiTaxonomyId,
+			String requestingIP, boolean batchRequest, String batchRequestId ) throws Exception {
 		
 		
-		return get_Disopred_2_DataForSequenceSequenceId( null /* sequence */, sequenceId, ncbiTaxonomyId );
+		return get_Disopred_2_DataForSequenceSequenceId( null /* sequence */, sequenceId, ncbiTaxonomyId,
+				requestingIP, batchRequest, batchRequestId );
 	}
 
 
@@ -53,15 +57,20 @@ public class Get_Disopred_2_DataService {
 	 * @return
 	 * @throws Exception 
 	 */
-	private String get_Disopred_2_DataForSequenceSequenceId( String sequence, int sequenceId, int ncbiTaxonomyId ) throws Exception {
+	private String get_Disopred_2_DataForSequenceSequenceId( String sequence, int sequenceId, int ncbiTaxonomyId,
+			String requestingIP, boolean batchRequest, String batchRequestId ) throws Exception {
 
 		String annotationType = AnnotationTypeStringsConstants.DISOPRED_2_TYPE;
 
 		String jobcenterRequestType = JobcenterConstants.REQUEST_TYPE_NAME_PROTEIN_ANNOTATION_DISOPRED_2; 
 		String jobcenterJobType = JobcenterConstants.JOB_TYPE_NAME_PROTEIN_ANNOTATION_DISOPRED_2;
+		String jobcenterJobTypeBatchRequest = JobcenterConstants.JOB_TYPE_NAME_PROTEIN_ANNOTATION_DISOPRED_2_BATCH;
 
-		
-		String response = GetOrSubmitCommonDataService.getInstance().getDataForSequenceOrSequenceId( sequence, sequenceId, ncbiTaxonomyId, annotationType, jobcenterRequestType, jobcenterJobType );
+		String response = 
+				GetOrSubmitCommonDataService.getInstance()
+				.getDataForSequenceOrSequenceId( sequence, sequenceId, ncbiTaxonomyId, 
+						requestingIP, batchRequest, batchRequestId, annotationType,
+						jobcenterRequestType, jobcenterJobType, jobcenterJobTypeBatchRequest ); 
 		
 		return response;
 	}

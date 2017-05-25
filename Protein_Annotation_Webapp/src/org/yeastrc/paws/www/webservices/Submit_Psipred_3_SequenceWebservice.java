@@ -48,6 +48,8 @@ public class Submit_Psipred_3_SequenceWebservice {
 	public String processSubmitWithGETJSON( 
 			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE ) @DefaultValue("") String sequenceToProcess,
 			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID ) @DefaultValue("") String ncbiTaxonomyIdString,
+			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST) String batchRequestString,
+			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_ID ) String batchRequestId,
 			@Context HttpServletRequest request ) {
 
 		if ( log.isDebugEnabled() ) {
@@ -55,7 +57,7 @@ public class Submit_Psipred_3_SequenceWebservice {
 			log.debug( "processSubmitWithGETJSON(...) called, " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE + ": " + sequenceToProcess );
 		}
 
-		return processSubmitInternal( sequenceToProcess, ncbiTaxonomyIdString, request );
+		return processSubmitInternal( sequenceToProcess, ncbiTaxonomyIdString, batchRequestString, batchRequestId, request );
 	}
 
 	/**
@@ -82,6 +84,8 @@ public class Submit_Psipred_3_SequenceWebservice {
 	public String processSubmitWithGETJSONP( 
 			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE ) @DefaultValue("") String sequenceToProcess,
 			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID ) @DefaultValue("") String ncbiTaxonomyIdString,
+			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST) String batchRequestString,
+			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_ID ) String batchRequestId,
 			@Context HttpServletRequest request ) {
 
 		if ( log.isDebugEnabled() ) {
@@ -91,7 +95,7 @@ public class Submit_Psipred_3_SequenceWebservice {
 		
 //		String callbackQueryParamValue = request.getParameter( RestWebServiceJSONP_Constants.CALLBACK_QUERY_PARAMETER );
 
-		return processSubmitInternal( sequenceToProcess, ncbiTaxonomyIdString, request );
+		return processSubmitInternal( sequenceToProcess, ncbiTaxonomyIdString, batchRequestString, batchRequestId, request );
 	}
 
 
@@ -117,6 +121,8 @@ public class Submit_Psipred_3_SequenceWebservice {
 	public String processSubmitWithPOSTJSON( 
 			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE ) @DefaultValue("") String sequenceToProcess,
 			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID ) @DefaultValue("") String ncbiTaxonomyIdString,
+			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST) String batchRequestString,
+			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_ID ) String batchRequestId,
 			@Context HttpServletRequest request ) {
 
 		if ( log.isDebugEnabled() ) {
@@ -124,7 +130,7 @@ public class Submit_Psipred_3_SequenceWebservice {
 			log.debug( "processSubmitWithPOSTJSON(...) called, " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE + ": " + sequenceToProcess );
 		}
 
-		return processSubmitInternal( sequenceToProcess, ncbiTaxonomyIdString, request );
+		return processSubmitInternal( sequenceToProcess, ncbiTaxonomyIdString, batchRequestString, batchRequestId, request );
 	}
 
 
@@ -136,10 +142,15 @@ public class Submit_Psipred_3_SequenceWebservice {
 	 * @param request
 	 * @return
 	 */
-	public String processSubmitInternal( String sequenceToProcess,
+	public String processSubmitInternal( 
+			String sequenceToProcess,
 			String ncbiTaxonomyIdString,
+			String batchRequestString, 
+			String batchRequestId,
 			HttpServletRequest request ) {
 
+		String requestingIP = request.getRemoteAddr();
+				
 		if ( log.isDebugEnabled() ) {
 
 			log.debug( "processSubmitInternal(...) called, " 
@@ -188,25 +199,32 @@ public class Submit_Psipred_3_SequenceWebservice {
 		    	        .build()
 		    	        );
 		}
+
+		boolean batchRequest = false;
 		
 		int ncbiTaxonomyId = 0;
+
+		if ( batchRequestString != null && batchRequestString.length() > 0 ) {
+			String batchRequestFirstChar = batchRequestString.substring(0, 1);
+			
+			if ( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_TRUE_Y.equalsIgnoreCase( batchRequestFirstChar )
+					||  RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_TRUE_T.equalsIgnoreCase( batchRequestFirstChar ) ) {
+				
+				batchRequest = true;
+			}
+		}
 		
 		try {
-			
 			ncbiTaxonomyId = Integer.parseInt( ncbiTaxonomyIdString );
 			
 		} catch ( Exception e ) {
-			
 			String msg = "'" + RestWebServicePathsConstants.SUBMIT_PSIPRED_3
 					+ "' query param '" 
 					+ RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID 
 					+ "' is not an integer.  URL must be '"
 					+ RestWebServicePathsConstants.SUBMIT_PSIPRED_3
 					+ "?" + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID + "=###'";
-
 			log.error( msg );
-
-
 			throw new WebApplicationException(
 					Response.status(javax.ws.rs.core.Response.Status.BAD_REQUEST)  //  return 400 error
 					.entity( msg )
@@ -215,13 +233,12 @@ public class Submit_Psipred_3_SequenceWebservice {
 			
 		}
 
-		
-		
-		
 
 		try {
 			
-			String response = Process_Psipred_3_SequenceSubmit.getInstance().process_Psipred_3_SequenceSubmit( sequenceToProcess, ncbiTaxonomyId );
+			String response = 
+					Process_Psipred_3_SequenceSubmit.getInstance()
+					.process_Psipred_3_SequenceSubmit( sequenceToProcess, ncbiTaxonomyId, requestingIP, batchRequest, batchRequestId );
 
 			return response;
 

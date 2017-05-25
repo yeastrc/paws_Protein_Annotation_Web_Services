@@ -26,6 +26,10 @@ public class GetConfigFromFileServiceImpl {
 
 	public static final String CONFIG_PROPERTY_PROGRAM_TO_RUN_COMMAND = "run.program.command";
 
+	
+	public static final String CONFIG_PROPERTY_FORCE_SPECIFY_TEMP_DIR_NAME = "force.specify.temp.dir.name";
+
+
 
 	////////////////////////////////////////////
 
@@ -46,10 +50,12 @@ public class GetConfigFromFileServiceImpl {
 	private static String tempRootDirectory;
 
 	private static String runProgramCommand;
+	
+	private static String forceSpecifyTempDirName;
 
 
 
-    static {   //  Static initializer run when class is loaded
+	static {   //  Static initializer run when class is loaded
 
     	GetConfigFromFileServiceImpl instance = new GetConfigFromFileServiceImpl();
 
@@ -152,9 +158,6 @@ public class GetConfigFromFileServiceImpl {
 			throw new RuntimeException( message, e );
 		}
 
-
-
-
 		try {
 			tempRootDirectory = getConfigValue( CONFIG_PROPERTY_TEMP_ROOT_DIRECTORY );
 		} catch (Exception e) {
@@ -199,6 +202,24 @@ public class GetConfigFromFileServiceImpl {
 
 			throw new IllegalConfigurationException( message );
 		}
+		
+		try {
+			//  Coded this way since can be empty or non-existent
+			forceSpecifyTempDirName = configProps.getProperty( CONFIG_PROPERTY_FORCE_SPECIFY_TEMP_DIR_NAME );
+		} catch (Exception e) {
+
+			String message = "The configuration file value for '" + CONFIG_PROPERTY_FORCE_SPECIFY_TEMP_DIR_NAME
+							+ "' was unable to be retrieved.";
+
+			log.error( message );
+
+			throw new RuntimeException( message, e );
+		}
+		if ( StringUtils.isEmpty( forceSpecifyTempDirName ) ) {
+			//  empty or null so set to null
+			forceSpecifyTempDirName = null;
+		}
+
 
 		/////////////////////////////////
 
@@ -264,14 +285,20 @@ public class GetConfigFromFileServiceImpl {
 
 
 	public static boolean getDeleteTempFilesAfterSuccessfulProcessing() {
-
 		if ( ! initializationCompleted ) {
-
 			throw new IllegalStateException( INITIALIZATION_FAILED_MESSAGE );
 		}
-
 		return deleteTempFilesAfterSuccessfulProcessing;
 	}
 
 
+
+    public static String getForceSpecifyTempDirName() {
+		if ( ! initializationCompleted ) {
+			throw new IllegalStateException( INITIALIZATION_FAILED_MESSAGE );
+		}
+		return forceSpecifyTempDirName;
+	}
+
+	
 }

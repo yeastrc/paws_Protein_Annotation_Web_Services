@@ -48,14 +48,16 @@ public class Get_Disopred_2_AnnotationDataWebservice {
 	public String processGetWithGETJSON( 
 			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE_ID ) @DefaultValue("") String sequenceIdString,
 			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID ) @DefaultValue("") String ncbiTaxonomyIdString,
+			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST) String batchRequestString,
+			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_ID ) String batchRequestId,
 			@Context HttpServletRequest request ) {
 
 		if ( log.isDebugEnabled() ) {
 
-			log.debug( "processGetWithGETJSON(...) called, " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE + ": " + sequenceIdString );
+			log.debug( "processGetWithGETJSON(...) called, " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE_ID + ": " + sequenceIdString );
 		}
 
-		return processGetInternal( sequenceIdString, ncbiTaxonomyIdString, request );
+		return processGetInternal( sequenceIdString, ncbiTaxonomyIdString, batchRequestString, batchRequestId, request );
 	}
 
 	/**
@@ -82,6 +84,8 @@ public class Get_Disopred_2_AnnotationDataWebservice {
 	public String processGetWithGETJSONP( 
 			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE_ID ) @DefaultValue("") String sequenceIdString,
 			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID ) @DefaultValue("") String ncbiTaxonomyIdString,
+			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST) String batchRequestString,
+			@QueryParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_ID ) String batchRequestId,
 			@Context HttpServletRequest request ) {
 
 		if ( log.isDebugEnabled() ) {
@@ -91,7 +95,7 @@ public class Get_Disopred_2_AnnotationDataWebservice {
 		
 //		String callbackQueryParamValue = request.getParameter( RestWebServiceJSONP_Constants.CALLBACK_QUERY_PARAMETER );
 
-		return processGetInternal( sequenceIdString, ncbiTaxonomyIdString, request );
+		return processGetInternal( sequenceIdString, ncbiTaxonomyIdString, batchRequestString, batchRequestId, request );
 	}
 
 
@@ -117,6 +121,8 @@ public class Get_Disopred_2_AnnotationDataWebservice {
 	public String processGetWithPOSTJSON( 
 			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE_ID ) @DefaultValue("") String sequenceIdString,
 			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID ) @DefaultValue("") String ncbiTaxonomyIdString,
+			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST) String batchRequestString,
+			@FormParam( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_ID ) String batchRequestId,
 			@Context HttpServletRequest request ) {
 
 		if ( log.isDebugEnabled() ) {
@@ -124,7 +130,7 @@ public class Get_Disopred_2_AnnotationDataWebservice {
 			log.debug( "processGetWithPOSTJSON(...) called, " + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE_ID + ": " + sequenceIdString );
 		}
 
-		return processGetInternal( sequenceIdString, ncbiTaxonomyIdString, request );
+		return processGetInternal( sequenceIdString, ncbiTaxonomyIdString, batchRequestString, batchRequestId, request );
 	}
 
 
@@ -136,9 +142,14 @@ public class Get_Disopred_2_AnnotationDataWebservice {
 	 * @param request
 	 * @return
 	 */
-	public String processGetInternal( String sequenceIdString,
+	public String processGetInternal( 
+			String sequenceIdString,
 			String ncbiTaxonomyIdString,
+			String batchRequestString, 
+			String batchRequestId,
 			HttpServletRequest request ) {
+
+		String requestingIP = request.getRemoteAddr();
 
 		if ( log.isDebugEnabled() ) {
 
@@ -159,7 +170,7 @@ public class Get_Disopred_2_AnnotationDataWebservice {
 			String msg = "'" + RestWebServicePathsConstants.GET_DISOPRED_2
 							+ "' query param is not provided or is empty.  URL must be '"
 							+ RestWebServicePathsConstants.GET_DISOPRED_2
-							+ "?" + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE + "=xxxx'";
+							+ "?" + RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE_ID + "=xxxx'";
 
 			log.error( msg );
 
@@ -189,8 +200,20 @@ public class Get_Disopred_2_AnnotationDataWebservice {
 		    	        );
 		}
 		
+		boolean batchRequest = false;
+		
 		int sequenceId = 0;
 		int ncbiTaxonomyId = 0;
+
+		if ( batchRequestString != null && batchRequestString.length() > 0 ) {
+			String batchRequestFirstChar = batchRequestString.substring(0, 1);
+			
+			if ( RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_TRUE_Y.equalsIgnoreCase( batchRequestFirstChar )
+					||  RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_BATCH_REQUEST_TRUE_T.equalsIgnoreCase( batchRequestFirstChar ) ) {
+				
+				batchRequest = true;
+			}
+		}
 		
 		try {
 			
@@ -245,7 +268,9 @@ public class Get_Disopred_2_AnnotationDataWebservice {
 
 		try {
 			
-			String response = Get_Disopred_2_DataService.getInstance().get_Disopred_2_DataForSequenceId( sequenceId, ncbiTaxonomyId );
+			String response = 
+					Get_Disopred_2_DataService.getInstance()
+					.get_Disopred_2_DataForSequenceId( sequenceId, ncbiTaxonomyId, requestingIP, batchRequest, batchRequestId );
 
 			return response;
 

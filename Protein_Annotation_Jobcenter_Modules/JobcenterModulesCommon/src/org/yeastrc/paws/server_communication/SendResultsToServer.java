@@ -1,4 +1,4 @@
-package org.yeastrc.paws.utils;
+package org.yeastrc.paws.server_communication;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -17,8 +17,9 @@ import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.log4j.Logger;
 import org.yeastrc.paws.base.constants.RestWebServiceQueryStringAndFormFieldParamsConstants;
+import org.yeastrc.paws.base.constants.InternalRestWebServicePathsConstants;
 import org.yeastrc.paws.base.constants.ModuleSendToServerResponseConstants;
-import org.yeastrc.paws.constants.SendResultsToServerConstants;
+import org.yeastrc.paws.constants.ServerSendReceiveConstants;
 
 public class SendResultsToServer {
 	
@@ -75,33 +76,28 @@ public class SendResultsToServer {
 	/**
 	 * This method takes the program result string and sends it to the server using the HttpClient
 	 *
-	 * @param sequenceId
-	 * @param ncbiTaxonomyId
-	 * @param annotationType
-	 * @param annotationTypeId
+	 * @param trackingId
 	 * @param annotationData
 	 * @param status
-	 * @param post_url
+	 * @param serverBaseURL
 	 * @throws Throwable
 	 */
 	public static void send( 
-			int sequenceId, int ncbiTaxonomyId, 
-			String annotationType, int annotationTypeId, String annotationData, 
-			int jobcenterRequestId,
+			int trackingId, 
+			String annotationData, 
 			String status, 
-			String post_url) throws Throwable {
+			String serverBaseURL ) throws Throwable {
 		
+		
+		String serverURL = serverBaseURL + InternalRestWebServicePathsConstants.SERVER_URL_EXTENSION__SAVE_RESULTS;
 		
 		if ( log.isInfoEnabled() ) {
 			
 			
-			log.info( "Sending the result to the server. sequenceId: " + sequenceId 
-					+ ", ncbiTaxonomyId: " + ncbiTaxonomyId
-					+ ", annotationType: " + annotationType
-					+ ", annotationTypeId: " + annotationTypeId
-					+ ", jobcenterRequestId: " + jobcenterRequestId
+			log.info( "Sending the result to the server. trackingId: " + trackingId 
 					+ ", status: " + status
-					+ ", post_url: " + post_url
+					+ ", serverBaseURL: " + serverBaseURL
+					+ ", serverURL: " + serverURL
 					+ " \n annotationData: " + annotationData
 					
 					);
@@ -119,26 +115,17 @@ public class SendResultsToServer {
 
 			HttpParams httpParams = client.getParams();
 
-			HttpConnectionParams.setConnectionTimeout(httpParams, SendResultsToServerConstants.HTTP_CONNECTION_TIMEOUT_MILLIS);
-			HttpConnectionParams.setSoTimeout(httpParams, SendResultsToServerConstants.HTTP_SOCKET_TIMEOUT_MILLIS);
+			HttpConnectionParams.setConnectionTimeout(httpParams, ServerSendReceiveConstants.HTTP_CONNECTION_TIMEOUT_MILLIS);
+			HttpConnectionParams.setSoTimeout(httpParams, ServerSendReceiveConstants.HTTP_SOCKET_TIMEOUT_MILLIS);
 
-			post = new HttpPost(post_url);
-			nameValuePairs = new ArrayList<NameValuePair>(1);
+			post = new HttpPost( serverURL );
+			nameValuePairs = new ArrayList<NameValuePair>(5);
 
-			nameValuePairs.add(new BasicNameValuePair(RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_SEQUENCE_ID, 
-							Integer.toString( sequenceId ) ) );
-			nameValuePairs.add(new BasicNameValuePair(RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_NCBI_TAXONOMY_ID, 
-					Integer.toString( ncbiTaxonomyId ) ) );
-			nameValuePairs.add(new BasicNameValuePair(RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_ANNOTATION_TYPE, 
-					annotationType ) );
-			nameValuePairs.add(new BasicNameValuePair(RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_ANNOTATION_TYPE_ID, 
-					Integer.toString( annotationTypeId ) ) );
+			nameValuePairs.add(new BasicNameValuePair(RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_TRACKING_ID, 
+							Integer.toString( trackingId ) ) );
 			nameValuePairs.add(new BasicNameValuePair(RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_ANNOTATION_DATA, 
 					annotationData));
 			
-			nameValuePairs.add(new BasicNameValuePair(RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_JOBCENTER_REQUEST_ID,
-					Integer.toString( jobcenterRequestId ) ) );
-
 			nameValuePairs.add(new BasicNameValuePair(RestWebServiceQueryStringAndFormFieldParamsConstants.REQUEST_PARAM_STATUS, 
 					status));
 
@@ -170,11 +157,8 @@ public class SendResultsToServer {
 						if ( log.isInfoEnabled() ) {
 							
 							
-							log.info( "About to Send: timeoutRetryCount: " + timeoutRetryCount + ", Send the result to the server. sequenceId: " + sequenceId 
-									+ ", ncbiTaxonomyId: " + ncbiTaxonomyId
-									+ ", annotationType: " + annotationType
-									+ ", annotationTypeId: " + annotationTypeId
-									);
+							log.info( "About to Send: timeoutRetryCount: " + timeoutRetryCount 
+									+ ", Send the result to the server. trackingId: " + trackingId );
 						}
 
 						
@@ -186,23 +170,19 @@ public class SendResultsToServer {
 						if ( log.isInfoEnabled() ) {
 							
 							
-							log.info( "Send without Exception: Send the result to the server. sequenceId: " + sequenceId 
-									+ ", ncbiTaxonomyId: " + ncbiTaxonomyId
-									+ ", annotationType: " + annotationType
-									+ ", annotationTypeId: " + annotationTypeId
-									);
+							log.info( "Send without Exception: Send the result to the server. trackingId: " + trackingId );
 						}
 
 					} catch (Throwable t) {
 
-						if ( timeoutRetryCount > SendResultsToServerConstants.SEND_RESULTS_TIMEOUT_RETRY_COUNT ) {
+						if ( timeoutRetryCount > ServerSendReceiveConstants.SEND_RECEIVE_RESULTS_TIMEOUT_RETRY_COUNT ) {
 
 							//  if retry count exceeded, rethrow the exception to exit the retry loop
 
 							String msg = "Timeout in HTTP Send.  Failed to send Program Results String, retry count exceeded so failing job. "
-									+ " sequenceId = "
-									+ sequenceId + ", timeoutRetryCount = " + timeoutRetryCount + ", timeout retry count max = "
-									+ SendResultsToServerConstants.SEND_RESULTS_TIMEOUT_RETRY_COUNT;
+									+ " trackingId = "
+									+ trackingId + ", timeoutRetryCount = " + timeoutRetryCount + ", timeout retry count max = "
+									+ ServerSendReceiveConstants.SEND_RECEIVE_RESULTS_TIMEOUT_RETRY_COUNT;
 
 							log.error( msg, t);
 
@@ -210,36 +190,14 @@ public class SendResultsToServer {
 						}
 
 						log.error("Timeout in HTTP Send.  Failed to send Program Results String, retry count NOT exceeded so retrying send. "
-								+ " sequenceId = "
-								+ sequenceId + ", timeoutRetryCount = " + timeoutRetryCount + ", timeout retry count max = "
-								+ SendResultsToServerConstants.SEND_RESULTS_TIMEOUT_RETRY_COUNT, t);
+								+ " trackingId = "
+								+ trackingId + ", timeoutRetryCount = " + timeoutRetryCount + ", timeout retry count max = "
+								+ ServerSendReceiveConstants.SEND_RECEIVE_RESULTS_TIMEOUT_RETRY_COUNT, t);
 					}
 				}
 				
 				int httpStatusCode = httpResponse.getStatusLine().getStatusCode();
 
-				// The HttpStatus should be 200 ( HttpStatus.SC_OK )
-
-				if (  httpStatusCode != HttpStatus.SC_OK ) {
-					
-
-					String msg = "Fail Send results to server. httpStatusCode != HttpStatus.SC_OK.  httpStatusCode: " + httpStatusCode
-							+ ",  post_url: " + post_url + ", sequenceId: " + sequenceId
-							+ ", ncbiTaxonomyId: " + ncbiTaxonomyId
-							+ ", annotationType: " + annotationType
-							+ ", annotationTypeId: " + annotationTypeId
-							+ ", jobcenterRequestId: " + jobcenterRequestId
-							+ ", status: " + status
-							+ ", annotationData: " + annotationData
-							
-							;
-					
-					log.error( msg );
-
-					throw new Exception( msg );
-					
-				}
-				
 
 				rd = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent()));
 
@@ -254,6 +212,26 @@ public class SendResultsToServer {
 
 					lastLineRead = line;
 				}
+				
+
+				// The HttpStatus should be 200 ( HttpStatus.SC_OK )
+
+				if (  httpStatusCode != HttpStatus.SC_OK ) {
+					
+
+					String msg = "Fail Send results to server. httpStatusCode != HttpStatus.SC_OK.  httpStatusCode: " + httpStatusCode
+							+ ",  serverURL: " + serverURL + ", trackingId: " + trackingId
+							+ ", status: " + status
+							+ ", annotationData: " + annotationData
+							
+							;
+					
+					log.error( msg );
+
+					throw new Exception( msg );
+					
+				}
+				
 
 				if ( lastLineRead != null && lastLineRead.startsWith( ModuleSendToServerResponseConstants.FAIL ) ) {
 
@@ -322,7 +300,7 @@ public class SendResultsToServer {
 			} //
 
 		} catch (Throwable t) {
-			log.error("Failed to send String.  sequenceId = " + sequenceId, t);
+			log.error("Failed to send String.  trackingId = " + trackingId, t);
 			throw t;
 		} finally {
 
@@ -336,11 +314,7 @@ public class SendResultsToServer {
 		if ( log.isInfoEnabled() ) {
 			
 			
-			log.info( "SUCCESSFUL: Send without Exception: Send the result to the server. sequenceId: " + sequenceId 
-					+ ", ncbiTaxonomyId: " + ncbiTaxonomyId
-					+ ", annotationType: " + annotationType
-					+ ", annotationTypeId: " + annotationTypeId
-					);
+			log.info( "SUCCESSFUL: Send without Exception: Send the result to the server. trackingId: " + trackingId ); 
 			
 		}
 

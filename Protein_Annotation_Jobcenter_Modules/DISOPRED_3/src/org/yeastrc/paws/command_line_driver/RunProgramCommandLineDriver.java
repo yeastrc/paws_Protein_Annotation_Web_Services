@@ -2,7 +2,7 @@ package org.yeastrc.paws.command_line_driver;
 
 import java.io.File;
 
-import org.yeastrc.paws.main.RunProgramMain;
+import org.yeastrc.paws.main.RunProgramMainSendResults;
 
 
 /**

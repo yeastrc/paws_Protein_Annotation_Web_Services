@@ -17,9 +17,12 @@ public class Process_Disopred_3_SequenceSubmit {
 	 * @return
 	 * @throws Exception 
 	 */
-	public String process_Disopred_3_SequenceSubmit( String sequenceToProcess, int ncbiTaxonomyId ) throws Exception {
+	public String process_Disopred_3_SequenceSubmit( String sequenceToProcess, int ncbiTaxonomyId,
+			String requestingIP, boolean batchRequest, String batchRequestId ) throws Exception {
 		
-		String response = Get_Disopred_3_DataService.getInstance().get_Disopred_3_DataForSequence( sequenceToProcess, ncbiTaxonomyId );
+		String response = 
+				Get_Disopred_3_DataService.getInstance()
+				.get_Disopred_3_DataForSequence( sequenceToProcess, ncbiTaxonomyId, requestingIP, batchRequest, batchRequestId );
 		
 		return response;
 	}

@@ -1,11 +1,11 @@
 package org.yeastrc.paws.www.service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.jobcenter.client.main.SubmissionClientConnectionToServer;
-import org.jobcenter.coreinterfaces.JobSubmissionInterface;
 import org.yeastrc.paws.base.constants.JobcenterConstants;
 import org.yeastrc.paws.www.constants.AnnotationDataRunStatusConstants;
 import org.yeastrc.paws.www.constants.ConfigSystemsKeysConstants;
@@ -27,15 +27,18 @@ public class GetOrSubmitCommonDataService {
 	
 	private GetOrSubmitCommonDataService() { }
 	public static GetOrSubmitCommonDataService getInstance() { return new GetOrSubmitCommonDataService(); }
-	
 
 	/**
 	 * @param sequence - Must not be null if want to submit a job to process the sequence
 	 * @param sequenceId
 	 * @param ncbiTaxonomyId
+	 * @param requestingIP
+	 * @param batchRequest
+	 * @param batchRequestId
 	 * @param annotationType
 	 * @param jobcenterRequestType
 	 * @param jobcenterJobType
+	 * @param jobcenterJobTypeBatchRequest - for batch request
 	 * @return
 	 * @throws Exception
 	 */
@@ -43,18 +46,22 @@ public class GetOrSubmitCommonDataService {
 			String sequence, 
 			int sequenceId, 
 			int ncbiTaxonomyId, 
+			String requestingIP,
+			boolean batchRequest,
+			String batchRequestId,
 			String annotationType,
 			String jobcenterRequestType,
-			String jobcenterJobType
+			String jobcenterJobType,
+			String jobcenterJobTypeBatchRequest
 			) throws Exception {
 
 		String response = null;
 		
-		String sendResultsURL = ConfigSystemDAO.getInstance().getValueFromKey( ConfigSystemsKeysConstants.SERVER_URL_FOR_MODULE_DATA_KEY );
+		String serverBaseUrl = ConfigSystemDAO.getInstance().getValueFromKey( ConfigSystemsKeysConstants.SERVER_BASE_URL_FOR_JC_MODULE_DATA_KEY );
 		
-		if ( sendResultsURL == null ) {
+		if ( serverBaseUrl == null ) {
 			
-			String msg = "Failed to get sendResultsURL from ConfigSystemDAO for key '" + ConfigSystemsKeysConstants.SERVER_URL_FOR_MODULE_DATA_KEY + "'." ;
+			String msg = "Failed to get serverBaseUrl from ConfigSystemDAO for key '" + ConfigSystemsKeysConstants.SERVER_BASE_URL_FOR_JC_MODULE_DATA_KEY + "'." ;
 
 			log.error( msg );
 			
@@ -72,6 +79,8 @@ public class GetOrSubmitCommonDataService {
 			throw new Exception( msg );
 		}
 		
+		boolean submitToJCModule = false;
+		
 		AnnotationDataDTO annotationDataDTO =
 				AnnotationDataDAO.getInstance().getAnnotationDataDTOBySequenceIdAnnotationTypeNCBITaxonomyId( sequenceId, annotationTypeId, ncbiTaxonomyId );
 		
@@ -79,47 +88,126 @@ public class GetOrSubmitCommonDataService {
 			
 			if ( sequence != null ) {
 				
-				annotationDataDTO = new AnnotationDataDTO();
+				// No data currently in annotation_data table and have sequence string so submit to get data
+				submitToJCModule = true;
+			}
+			
+		} else {
+			//  Determine if existing requests are only batch requests
+
+			List<AnnotationProcessingTrackingDTO> annotationProcessingTrackingDTOList = 
+					AnnotationProcessingTrackingDAO.getInstance()
+					.getAnnotationProcessingTrackingDTOBySequenceIdAnnotationTypeNCBITaxonomyId(
+							sequenceId, annotationTypeId, ncbiTaxonomyId );
+			// annotationProcessingTrackingDTOList is empty if the tracking entry has been removed 
+			if ( ! annotationProcessingTrackingDTOList.isEmpty() ) {
+				boolean onlyBatchRequests = true;
+				for ( AnnotationProcessingTrackingDTO item : annotationProcessingTrackingDTOList ) {
+					if ( ! item.isBatchRequest() ) {
+						onlyBatchRequests = false;
+						break;
+					}
+				}
+				if ( onlyBatchRequests && ( ! batchRequest ) ) {
+					// Only batch requests and this request not a batch request so submit to get data at higher priority
+					submitToJCModule = true;
+				}
+			}
 				
-				annotationDataDTO.setSequenceId( sequenceId );
-				annotationDataDTO.setAnnotationTypeId( annotationTypeId );
-				annotationDataDTO.setNcbiTaxonomyId( ncbiTaxonomyId );
-				annotationDataDTO.setRunStatus( AnnotationDataRunStatusConstants.STATUS_SUBMITTED );
-				
-				AnnotationDataDAO.getInstance().save( annotationDataDTO );
-				
-				int jobcenterRequestId = 
-						submitJobToRunProgram( sequence, sequenceId, ncbiTaxonomyId, annotationType, annotationTypeId, 
-												jobcenterRequestType, jobcenterJobType, sendResultsURL );
-				
-				AnnotationProcessingTrackingDTO annotationProcessingTrackingDTO = new AnnotationProcessingTrackingDTO();
-				
-				annotationProcessingTrackingDTO.setSequenceId( sequenceId );
-				annotationProcessingTrackingDTO.setAnnotationTypeId( annotationTypeId );
-				annotationProcessingTrackingDTO.setNcbiTaxonomyId( ncbiTaxonomyId );
-				annotationProcessingTrackingDTO.setJobcenterRequestId( jobcenterRequestId );
-				annotationProcessingTrackingDTO.setRunStatus( AnnotationDataRunStatusConstants.STATUS_SUBMITTED );
-				
-				AnnotationProcessingTrackingDAO.getInstance().save( annotationProcessingTrackingDTO );
-				
-				response = "{" + createRunStatusSequenceIdResponse( annotationDataDTO, sequenceId ) + "}";
-				
+			
+		}
+		
+		if ( ! submitToJCModule ) {
+			
+			if ( annotationDataDTO != null ) {
+
+				if ( AnnotationDataRunStatusConstants.STATUS_SUBMITTED.equals( annotationDataDTO.getRunStatus() ) ) {
+
+					response = "{" + createRunStatusSequenceIdResponse( annotationDataDTO, sequenceId ) + "}";
+				} else {
+					//  Return full response for annotation data record
+					response = "{" + createRunStatusSequenceIdResponse( annotationDataDTO, sequenceId ) 
+					+ createJSONFromDBResponse( annotationDataDTO ) + "}";
+				}
 			} else {
-				
 				response = "{" + createRunStatusSequenceIdResponse( annotationDataDTO, sequenceId ) + "}";
 			}
 			
-		} else if ( AnnotationDataRunStatusConstants.STATUS_SUBMITTED.equals( annotationDataDTO.getRunStatus() ) ) {
-			
-			response = "{" + createRunStatusSequenceIdResponse( annotationDataDTO, sequenceId ) + "}";
-			
-		} else  {
-			
-			response = "{" + createRunStatusSequenceIdResponse( annotationDataDTO, sequenceId ) 
-					+ createJSONFromDBResponse( annotationDataDTO ) + "}";
+			return response;   //  EARLY EXIT
 		}
 		
-		return response;
+		if ( sequence == null ) {
+
+			response = "{" + createRunStatusSequenceIdResponse( annotationDataDTO, sequenceId ) + "}";
+			return response;   //  EARLY EXIT
+		}
+				
+		if ( annotationDataDTO == null ) {
+
+			annotationDataDTO = new AnnotationDataDTO();
+
+			annotationDataDTO.setSequenceId( sequenceId );
+			annotationDataDTO.setAnnotationTypeId( annotationTypeId );
+			annotationDataDTO.setNcbiTaxonomyId( ncbiTaxonomyId );
+			annotationDataDTO.setRunStatus( AnnotationDataRunStatusConstants.STATUS_SUBMITTED );
+
+			AnnotationDataDAO.getInstance().save( annotationDataDTO );
+		}
+		
+		try {
+
+			AnnotationProcessingTrackingDTO annotationProcessingTrackingDTO = new AnnotationProcessingTrackingDTO();
+
+			annotationProcessingTrackingDTO.setSequenceId( sequenceId );
+			annotationProcessingTrackingDTO.setAnnotationTypeId( annotationTypeId );
+			annotationProcessingTrackingDTO.setNcbiTaxonomyId( ncbiTaxonomyId );
+			annotationProcessingTrackingDTO.setRequestingIP( requestingIP );
+			annotationProcessingTrackingDTO.setBatchRequest( batchRequest );
+			annotationProcessingTrackingDTO.setBatchRequestId( batchRequestId );
+
+			annotationProcessingTrackingDTO.setRunStatus( AnnotationDataRunStatusConstants.STATUS_PENDING );
+			AnnotationProcessingTrackingDAO.getInstance().save( annotationProcessingTrackingDTO );
+
+			String jobcenterJobTypeLocal = jobcenterJobType;
+			if ( batchRequest ) {
+				jobcenterJobTypeLocal = jobcenterJobTypeBatchRequest;
+			}
+
+			int jobcenterRequestId = 0;
+
+			try { 
+				jobcenterRequestId = 
+						submitJobToRunProgram( annotationProcessingTrackingDTO.getId(), 
+								jobcenterRequestType, jobcenterJobTypeLocal, serverBaseUrl );
+
+			} catch ( Exception e ) {
+
+				annotationDataDTO.setRunStatus( AnnotationDataRunStatusConstants.STATUS_FAIL );
+				AnnotationDataDAO.getInstance().updateAnnotationDataAnnDataRunStatus( annotationDataDTO );
+
+				annotationProcessingTrackingDTO.setRunStatus( AnnotationDataRunStatusConstants.STATUS_FAIL );
+				AnnotationProcessingTrackingDAO.getInstance().updateRunStatus(annotationProcessingTrackingDTO);
+
+				throw e;
+			}
+
+			annotationProcessingTrackingDTO.setJobcenterRequestId( jobcenterRequestId );
+			annotationProcessingTrackingDTO.setRunStatus( AnnotationDataRunStatusConstants.STATUS_SUBMITTED );
+
+			AnnotationProcessingTrackingDAO.getInstance().updateJobcenterRequestId( annotationProcessingTrackingDTO );
+			AnnotationProcessingTrackingDAO.getInstance().updateRunStatus( annotationProcessingTrackingDTO );
+
+			response = "{" + createRunStatusSequenceIdResponse( annotationDataDTO, sequenceId ) + "}";
+
+			return response;
+
+		} catch ( Exception e ) {
+
+			annotationDataDTO.setRunStatus( AnnotationDataRunStatusConstants.STATUS_FAIL );
+			AnnotationDataDAO.getInstance().updateAnnotationDataAnnDataRunStatus( annotationDataDTO );
+
+			throw e;
+		}
 	}
 	
 
@@ -172,20 +260,18 @@ public class GetOrSubmitCommonDataService {
 	
 
 	/**
-	 * @param sequence
-	 * @param sequenceId
-	 * @param ncbiTaxonomyId
+	 * @param trackingId
 	 * @param annotationType
-	 * @param annotationTypeId
 	 * @param jobcenterRequestType
 	 * @param jobcenterJobType
 	 * @param sendResultsURL
 	 * @throws Exception
 	 */
-	private int submitJobToRunProgram( String sequence, int sequenceId, int ncbiTaxonomyId,
-			String annotationType, int annotationTypeId, 
-			String jobcenterRequestType, String jobcenterJobType, 
-			String sendResultsURL ) throws Exception {
+	private int submitJobToRunProgram( 
+			int trackingId,
+			String jobcenterRequestType, 
+			String jobcenterJobType, 
+			String serverBaseUrl ) throws Exception {
 		
 
 		int jobcenterRequestId = 0;
@@ -208,34 +294,17 @@ public class GetOrSubmitCommonDataService {
 
 			//    Submit the job
 
-
-
 			Map<String, String> jobParameters = new HashMap<String, String> ();
 
-			jobParameters.put( JobcenterConstants.JOB_PARAM_SEQUENCE, sequence );
+			jobParameters.put( JobcenterConstants.JOB_PARAM_TRACKING_ID, Integer.toString( trackingId ) );
 
-			jobParameters.put( JobcenterConstants.JOB_PARAM_SEQUENCE_ID, Integer.toString( sequenceId ) );
-
-			jobParameters.put( JobcenterConstants.JOB_PARAM_NCBI_TAXONOMY_ID, Integer.toString( ncbiTaxonomyId ) );
-
-			jobParameters.put( JobcenterConstants.JOB_PARAM_ANNOTATION_TYPE, annotationType );
-			jobParameters.put( JobcenterConstants.JOB_PARAM_ANNOTATION_TYPE_ID, Integer.toString( annotationTypeId ) );
-
-			jobParameters.put( JobcenterConstants.JOB_PARAM_SEND_RESULTS_URL, sendResultsURL );
-
-
-			
-//			JobSubmissionInterface jobSubmissionClient = new SubmissionClientConnectionToServer();
-			
+			jobParameters.put( JobcenterConstants.JOB_PARAM_SERVER_BASE_URL, serverBaseUrl );
 
 			SubmissionClientConnectionToServer jobSubmissionClient = new SubmissionClientConnectionToServer();
 			
 			jobSubmissionClient.setNodeName( JobcenterForWebAppConstants.JOB_SUBMISSION_NODE_NAME );
 
-			String connectionURL = jobSubmissionURL;
-
-			jobSubmissionClient.init( connectionURL );
-
+			jobSubmissionClient.init( jobSubmissionURL );
 
 			
 			try {
@@ -272,10 +341,11 @@ public class GetOrSubmitCommonDataService {
 				
 				String submitJobRequestMarshalledLastSentString = new String( submitJobRequestMarshalledLastSent, "UTF-8" );
 				
-				log.debug( "XML sent to Jobcenter for request: annotationType: " + annotationType 
-						+ ", annotationTypeId: " + annotationTypeId
+				RuntimeException tempExc = new RuntimeException( "DEBUG Message, NOT an Error");
+				
+				log.debug( "!!!!!!!  DEBUG Message, NOT an Error:  XML sent to Jobcenter for request: trackingId: " + trackingId 
 						+ ", returned jobcenterRequestId: " + jobcenterRequestId
-						+ ", XML: "+  submitJobRequestMarshalledLastSentString );
+						+ ", XML: "+  submitJobRequestMarshalledLastSentString, tempExc );
 			}
 
 		} catch ( Throwable e ) {

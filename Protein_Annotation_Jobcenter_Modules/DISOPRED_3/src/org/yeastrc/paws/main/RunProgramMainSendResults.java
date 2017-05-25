@@ -1,18 +1,21 @@
 package org.yeastrc.paws.main;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.yeastrc.paws.base.constants.ModuleRunProgramStatusConstants;
+import org.yeastrc.paws.config.GetConfigFromFileServiceImpl;
 import org.yeastrc.paws.constants.DisopredFilenameConstants;
 import org.yeastrc.paws.program_runner.ProgramRunner;
 import org.yeastrc.paws.program_runner.DisopredResultsParser;
 import org.yeastrc.paws.program_runner.TempDirCleaner;
+import org.yeastrc.paws.server_communication.GetAnnotationDataPartsForTrackingId;
+import org.yeastrc.paws.server_communication.GetAnnotationDataPartsForTrackingId.GetAnnotationDataPartsForTrackingIdResult;
+import org.yeastrc.paws.server_communication.SendResultsToServer;
 import org.yeastrc.paws.utils.GetJSONForObject;
-import org.yeastrc.paws.utils.SendResultsToServer;
 import org.yeastrc.paws.dto.DisopredParsedResults;
 
 
@@ -20,10 +23,10 @@ import org.yeastrc.paws.dto.DisopredParsedResults;
  *
  *
  */
-public class RunProgramMain {
+public class RunProgramMainSendResults {
 
 
-	private static Logger log = Logger.getLogger(RunProgramMain.class);
+	private static Logger log = Logger.getLogger(RunProgramMainSendResults.class);
 
 //	private static final int WAIT_FOR_COMPLETE_COUNTER = 5;
 //
@@ -40,7 +43,7 @@ public class RunProgramMain {
 
 	//  Private constructor
 
-	private RunProgramMain() {
+	private RunProgramMainSendResults() {
 
 
 	}
@@ -49,9 +52,9 @@ public class RunProgramMain {
 	/**
 	 * @return
 	 */
-	public static RunProgramMain getInstance() {
+	public static RunProgramMainSendResults getInstance() {
 
-		return new RunProgramMain();
+		return new RunProgramMainSendResults();
 	}
 
 	/**
@@ -114,36 +117,67 @@ public class RunProgramMain {
 	}
 
 
-
-	public void processRequest( String sequence, int sequenceId, int ncbiTaxonomyId, 
-			String annotationType, int annotationTypeId, 
-			File tempBaseDirectory, String tempDirectoryString, 
+	/**
+	 * @param trackingId
+	 * @param tempBaseDirectory
+	 * @param tempDirectoryString
+	 * @param numberOfThreadsForRunningJob
+	 * @param jobcenterRequestId
+	 * @param serverBaseURL
+	 * @throws Throwable
+	 */
+	public void processRequest( int trackingId, 
+			File tempBaseDirectory, 
+			String tempDirectoryString, 
 			int numberOfThreadsForRunningJob,
 			int jobcenterRequestId,
-			String sendResultsURL )throws Throwable {
+			String serverBaseURL )throws Throwable {
 
+		boolean forceSpecifyTempDirNameSpecified = false;
+		if ( StringUtils.isNotEmpty( GetConfigFromFileServiceImpl.getForceSpecifyTempDirName() ) ) {
+			//  If ForceSpecifyTempDirName populated, use it
+			tempDirectoryString = GetConfigFromFileServiceImpl.getForceSpecifyTempDirName();
+			forceSpecifyTempDirNameSpecified = true;
+		} else {
+			
+		}
 
 		File tempDirectory = new File( tempBaseDirectory, tempDirectoryString );
 
 		try {
 
+			GetAnnotationDataPartsForTrackingIdResult getAnnotationDataPartsForTrackingIdResult =
+					GetAnnotationDataPartsForTrackingId.getProteinSequenceForTrackingId( trackingId, serverBaseURL );
+			
+			if ( getAnnotationDataPartsForTrackingIdResult.isAlreadyComputed() ) {
+				//  Already processed so skip
+				if ( log.isInfoEnabled() ) {
+					log.info( "Annotation Data already computed for trackingId " + trackingId + " so early exit." );
+				}
+				return;  //  EARLY EXIT
+			}
+
 			//  create temp directory
 			
-			if ( ! tempDirectory.mkdir() ) {
-				
-				String msg = "Failed to make temp directory: " + tempDirectory.getAbsolutePath();
-				
-				log.error( msg );
-				
-				throw new Exception(msg);
+			if ( forceSpecifyTempDirNameSpecified ) {
+				// Validate the dir exists
+				if ( ! tempDirectory.exists() ) {
+					String msg = "temp directory does not exist: " + tempDirectory.getAbsolutePath();
+					log.error( msg );
+					throw new Exception(msg);
+				}
+			} else {
+				//  Only create temp dir if "Force..." is not specified
+
+				if ( ! tempDirectory.mkdir() ) {
+					String msg = "Failed to make temp directory: " + tempDirectory.getAbsolutePath();
+					log.error( msg );
+					throw new Exception(msg);
+				}
 			}
-			
-			
+
 			//  Create input file to program
-			
-
-
-			File programInputFile = createInputFile( sequence, tempDirectory) ;
+			File programInputFile = createInputFile( getAnnotationDataPartsForTrackingIdResult.getSequence(), tempDirectory) ;
 			
 			
 			
@@ -163,27 +197,26 @@ public class RunProgramMain {
 
 			
 			//////  Send result
-			
-			SendResultsToServer.send( sequenceId, ncbiTaxonomyId, 
-					annotationType, annotationTypeId, 
+
+			SendResultsToServer.send( trackingId, 
 					disopredParsedResultsString /* annotationData */, 
-					jobcenterRequestId,
-					ModuleRunProgramStatusConstants.STATUS_SUCCESS, sendResultsURL );
+					ModuleRunProgramStatusConstants.STATUS_SUCCESS, 
+					serverBaseURL );
+			
 			
 
 		} catch ( Throwable t ) {
 
-			log.error( "jobcenterRequestId = " + jobcenterRequestId + ".  Exception processing sequence id " + sequenceId + ".  Exception: " + t.toString(), t );
+			log.error( "jobcenterRequestId = " + jobcenterRequestId + ".  Exception processing trackingId " + trackingId + ".  Exception: " + t.toString(), t );
 			
 			try {
 
 				//////  Send result
 
-				SendResultsToServer.send( sequenceId, ncbiTaxonomyId, 
-						annotationType, annotationTypeId, 
+				//////  Send result
+				SendResultsToServer.send( trackingId, 
 						null /* annotationData */, 
-						jobcenterRequestId,
-						ModuleRunProgramStatusConstants.STATUS_FAIL, sendResultsURL );
+						ModuleRunProgramStatusConstants.STATUS_FAIL, serverBaseURL );
 			
 			} catch( Exception e ) {
 				

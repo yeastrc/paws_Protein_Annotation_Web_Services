@@ -62,6 +62,8 @@
 	<ant dir="Protein_Annotation_Jobcenter_Modules/DISOPRED_3" /> <!--  run default build.xml and default ant task in this directory -->
 	<ant dir="Protein_Annotation_Jobcenter_Modules/PSIPRED_3" /> <!--  run default build.xml and default ant task in this directory -->
 
+	<ant dir="Protein_Annotation_Webapp" /> <!--  run default build.xml and default ant task in this directory -->
+
 <!--
   <ant antfile="subproject/subbuild.xml" target="compile"/>
 -->

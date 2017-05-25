@@ -20,7 +20,7 @@ import org.jobcenter.job_client_module_interface.ModuleInterfaceRequest;
 import org.jobcenter.job_client_module_interface.ModuleInterfaceResponse;
 import org.yeastrc.paws.base.constants.JobcenterConstants;
 import org.yeastrc.paws.config.GetConfigFromFileServiceImpl;
-import org.yeastrc.paws.utils.SendResultsToServer;
+import org.yeastrc.paws.server_communication.SendResultsToServer;
 
 /**
  *
@@ -34,7 +34,7 @@ public class RunProgramJobMgrModule implements ModuleInterfaceClientMainInterfac
 
 	private static final String MODULE_LABEL = "Run Program";
 
-	private RunProgramMain runProgramMain;
+	private RunProgramMainSendResults runProgramMainSendResults;
 
 	//////////////////////////////////
 
@@ -121,8 +121,6 @@ public class RunProgramJobMgrModule implements ModuleInterfaceClientMainInterfac
 			throw new Exception( msg );
 		}
 
-
-
 		initialized = true;
 	}
 
@@ -136,16 +134,16 @@ public class RunProgramJobMgrModule implements ModuleInterfaceClientMainInterfac
 
 		log.info( "destroy() called " );
 
-		if ( runProgramMain != null ) {
+		if ( runProgramMainSendResults != null ) {
 			try {
-				runProgramMain.destroy();
+				runProgramMainSendResults.destroy();
 
 			} catch ( Throwable ex ) {
 
 				log.error(" Exception while running " + MODULE_LABEL + ", calling 'pawsMain.destroy();'.  This error may have already been logged and emailed.  Exception = " + ex.toString(), ex );
 			}
 
-			runProgramMain = null;
+			runProgramMainSendResults = null;
 		}
 
 
@@ -169,9 +167,9 @@ public class RunProgramJobMgrModule implements ModuleInterfaceClientMainInterfac
 		shutdownRequested = true;
 
 
-		if ( runProgramMain != null ) {
+		if ( runProgramMainSendResults != null ) {
 
-			runProgramMain.shutdown();
+			runProgramMainSendResults.shutdown();
 		}
 		
 		SendResultsToServer.shutdown();
@@ -210,9 +208,9 @@ public class RunProgramJobMgrModule implements ModuleInterfaceClientMainInterfac
 			throw new Exception( "Module has not been initialized" );
 		}
 
-		if ( runProgramMain != null ) {
+		if ( runProgramMainSendResults != null ) {
 
-			runProgramMain.reset();
+			runProgramMainSendResults.reset();
 		}
 
 	}
@@ -230,13 +228,13 @@ public class RunProgramJobMgrModule implements ModuleInterfaceClientMainInterfac
 
 			throw new Exception( "Module has not been initialized" );
 		}
-		
+
 		int jobcenterRequestId = moduleInterfaceRequest.getRequestId();
 		
 		int numberOfThreadsForRunningJob = moduleInterfaceRequest.getNumberOfThreadsForRunningJob();
 		
 
-		log.info( "Entering Module Run Disopred 2, RunProgramJobMgrModule::processRequest() called.  jobcenterRequestId: " + jobcenterRequestId
+		log.info( "Entering Module Run Psipred 3, RunProgramJobMgrModule::processRequest() called.  jobcenterRequestId: " + jobcenterRequestId
 				+ ", numberOfThreadsForRunningJob: " + numberOfThreadsForRunningJob );
 
 
@@ -246,7 +244,7 @@ public class RunProgramJobMgrModule implements ModuleInterfaceClientMainInterfac
 
 		//  Init here since destroy() after each load to close db connections so don't keep them open while not loading files.
 
-		runProgramMain = RunProgramMain.getInstance();
+		runProgramMainSendResults = RunProgramMainSendResults.getInstance();
 
 		//////////////////////////
 
@@ -256,156 +254,58 @@ public class RunProgramJobMgrModule implements ModuleInterfaceClientMainInterfac
 		try {
 
 
-			runProgramMain.init();
+			runProgramMainSendResults.init();
 
-			String sequence = jobParameters.get( JobcenterConstants.JOB_PARAM_SEQUENCE );
+			String trackingIdString = jobParameters.get( JobcenterConstants.JOB_PARAM_TRACKING_ID );
+			if ( StringUtils.isEmpty( trackingIdString ) ) {
+				String msg = methodName + ": job parameter " + JobcenterConstants.JOB_PARAM_TRACKING_ID + " cannot be empty or null.";
+				log.error( msg );
+				throw new Exception( msg );
+			}
 
-			if ( StringUtils.isEmpty( sequence ) ) {
+			String serverBaseURL = jobParameters.get( JobcenterConstants.JOB_PARAM_SERVER_BASE_URL );
 
-				String msg = methodName + ": job parameter " + JobcenterConstants.JOB_PARAM_SEQUENCE + " cannot be empty or null.";
+			if ( StringUtils.isEmpty( serverBaseURL ) ) {
+
+				String msg = methodName + ": job parameter " + JobcenterConstants.JOB_PARAM_SERVER_BASE_URL + " cannot be empty or null.";
 
 				log.error( msg );
 
 				throw new Exception( msg );
 			}
 
-			String sequenceIdString = jobParameters.get( JobcenterConstants.JOB_PARAM_SEQUENCE_ID );
-
-			if ( StringUtils.isEmpty( sequenceIdString ) ) {
-
-				String msg = methodName + ": job parameter " + JobcenterConstants.JOB_PARAM_SEQUENCE_ID + " cannot be empty or null.";
-
-				log.error( msg );
-
-				throw new Exception( msg );
-			}
-
-
-			String ncbiTaxonomyIdString = jobParameters.get( JobcenterConstants.JOB_PARAM_NCBI_TAXONOMY_ID );
-
-			if ( StringUtils.isEmpty( ncbiTaxonomyIdString ) ) {
-
-				String msg = methodName + ": job parameter " + JobcenterConstants.JOB_PARAM_NCBI_TAXONOMY_ID + " cannot be empty or null.";
-
-				log.error( msg );
-
-				throw new Exception( msg );
-			}
-			
-
-			String annotationType = jobParameters.get( JobcenterConstants.JOB_PARAM_ANNOTATION_TYPE );
-
-			if ( StringUtils.isEmpty( annotationType ) ) {
-
-				String msg = methodName + ": job parameter " + JobcenterConstants.JOB_PARAM_ANNOTATION_TYPE + " cannot be empty or null.";
-
-				log.error( msg );
-
-				throw new Exception( msg );
-			}
-			
-
-			String annotationTypeIdString = jobParameters.get( JobcenterConstants.JOB_PARAM_ANNOTATION_TYPE_ID );
-
-			if ( StringUtils.isEmpty( annotationTypeIdString ) ) {
-
-				String msg = methodName + ": job parameter " + JobcenterConstants.JOB_PARAM_ANNOTATION_TYPE_ID + " cannot be empty or null.";
-
-				log.error( msg );
-
-				throw new Exception( msg );
-			}
-			
-
-			String sendResultsURL = jobParameters.get( JobcenterConstants.JOB_PARAM_SEND_RESULTS_URL );
-
-			if ( StringUtils.isEmpty( sendResultsURL ) ) {
-
-				String msg = methodName + ": job parameter " + JobcenterConstants.JOB_PARAM_SEND_RESULTS_URL + " cannot be empty or null.";
-
-				log.error( msg );
-
-				throw new Exception( msg );
-			}
-
-			int sequenceId = -1;
-			int ncbiTaxonomyId = -1;
-			int annotationTypeId = -1;
+			int trackingId = -1;
 
 			try {
-				sequenceId = Integer.parseInt( sequenceIdString );
+				trackingId = Integer.parseInt( trackingIdString );
 
 			} catch( Throwable t ) {
-
-
-				String msg = methodName + ": job parameter " + JobcenterConstants.JOB_PARAM_SEQUENCE_ID 
-						+ "  is not an integer, is = |" + sequenceIdString + "|." ;
-
+				String msg = methodName + ": job parameter " + JobcenterConstants.JOB_PARAM_TRACKING_ID 
+						+ "  is not an integer, is = |" + trackingIdString + "|." ;
 				log.error( msg );
-
 				throw new Exception( msg );
 			}
 			
-
-			try {
-				ncbiTaxonomyId = Integer.parseInt( ncbiTaxonomyIdString );
-
-			} catch( Throwable t ) {
-
-
-				String msg = methodName + ": job parameter " + JobcenterConstants.JOB_PARAM_NCBI_TAXONOMY_ID 
-						+ "  is not an integer, is = |" + ncbiTaxonomyIdString + "|." ;
-
-				log.error( msg );
-
-				throw new Exception( msg );
-			}
-
-			try {
-				annotationTypeId = Integer.parseInt( annotationTypeIdString );
-
-			} catch( Throwable t ) {
-
-
-				String msg = methodName + ": job parameter " + JobcenterConstants.JOB_PARAM_ANNOTATION_TYPE_ID 
-						+ "  is not an integer, is = |" + annotationTypeIdString + "|." ;
-
-				log.error( msg );
-
-				throw new Exception( msg );
-			}
-			
-
 			
 			if ( log.isInfoEnabled() ) {
 				log.info( "Parameters from job:  '" 
-						+ JobcenterConstants.JOB_PARAM_SEQUENCE + "' " + " = '" + sequence 
-						+ "', '" + JobcenterConstants.JOB_PARAM_SEQUENCE_ID + "' = '" +  sequenceId
-						+ "', '" + JobcenterConstants.JOB_PARAM_NCBI_TAXONOMY_ID + "' = '" +  ncbiTaxonomyId
-						+ "', '" + JobcenterConstants.JOB_PARAM_ANNOTATION_TYPE + "' = '" +  annotationType
-						+ "', '" + JobcenterConstants.JOB_PARAM_ANNOTATION_TYPE_ID + "' = '" +  annotationTypeId
-						+ "', '" + JobcenterConstants.JOB_PARAM_SEND_RESULTS_URL + "' = '" +  sendResultsURL
+						+ JobcenterConstants.JOB_PARAM_TRACKING_ID + "' " + " = '" + trackingId 
+						+ "', '" + JobcenterConstants.JOB_PARAM_SERVER_BASE_URL + "' = '" +  serverBaseURL
 						+ "'.  tempBaseDirectory = " + tempBaseDirectory );
 			}
 
 
-			runProgramMain.processRequest( sequence, sequenceId, ncbiTaxonomyId, 
-					annotationType, annotationTypeId,
+			runProgramMainSendResults.processRequest( trackingId,
 					tempBaseDirectory, tempDirectoryString, 
 					numberOfThreadsForRunningJob,
 					jobcenterRequestId,
-					sendResultsURL
+					serverBaseURL
 					);
-
 
 
 			moduleInterfaceResponse.setStatusCode( JobStatusValuesConstants.JOB_STATUS_FINISHED );
 
 			moduleInterfaceResponse.addRunMessage( RunMessageTypesConstants.RUN_MESSAGE_TYPE_MSG , "Successful completion" );
-
-
-
-
 
 		} catch ( Throwable t ) {
 

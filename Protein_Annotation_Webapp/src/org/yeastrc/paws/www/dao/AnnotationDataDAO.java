@@ -48,16 +48,6 @@ public class AnnotationDataDAO {
 			
 			conn = DBConnectionFactory.getConnection( DBConnectionFactory.PAWS );
 
-
-			//CREATE TABLE annotation_data (
-//					  sequence_id INT UNSIGNED NOT NULL,
-//					  annotation_type_id INT UNSIGNED NOT NULL,
-//					  ncbi_taxonomy_id INT UNSIGNED NOT NULL,
-//					  run_status ENUM('submitted','complete','fail') NOT NULL,
-//					  last_run_date DATETIME NOT NULL,
-//					  annotation_data LONGTEXT NULL,
-
-			
 			pstmt = conn.prepareStatement( sql );
 			
 			int counter = 0;
@@ -116,7 +106,7 @@ public class AnnotationDataDAO {
 	private AnnotationDataDTO populateFromResultSet(ResultSet rs) throws SQLException {
 		
 		AnnotationDataDTO result = new AnnotationDataDTO();
-//		
+	
 		result.setSequenceId( rs.getInt( "sequence_id" ) );
 		result.setAnnotationTypeId( rs.getInt( "annotation_type_id" ) );
 		result.setNcbiTaxonomyId( rs.getInt( "ncbi_taxonomy_id" ) );
@@ -170,17 +160,6 @@ public class AnnotationDataDAO {
 			+ " ( sequence_id, annotation_type_id, ncbi_taxonomy_id, run_status, last_run_date, annotation_data )"
 			+ " VALUES ( ?, ?, ?, ?,  NOW(), ? )";
 
-
-
-	//CREATE TABLE annotation_data (
-//			  sequence_id INT UNSIGNED NOT NULL,
-//			  annotation_type_id INT UNSIGNED NOT NULL,
-//			  ncbi_taxonomy_id INT UNSIGNED NOT NULL,
-//			  run_status ENUM('submitted','complete','fail') NOT NULL,
-//			  last_run_date DATETIME NOT NULL,
-//			  annotation_data LONGTEXT NULL,
-
-
 	/**
 	 * @param item
 	 * @return
@@ -197,7 +176,7 @@ public class AnnotationDataDAO {
 		try {
 
 
-//			connection = DBConnectionFactory.getConnection( DBConnectionFactory.CROSSLINKS );
+//			connection = DBConnectionFactory.getConnection( DBConnectionFactory.PAWS );
 
 			pstmt = connection.prepareStatement( insertSQL );
 
@@ -270,26 +249,19 @@ public class AnnotationDataDAO {
 	 * @return
 	 * @throws Throwable
 	 */
-	public void updateAnnotationDataRunStatus( AnnotationDataDTO item ) throws Exception {
+	public void updateAnnotationDataAnnDataRunStatus( AnnotationDataDTO item ) throws Exception {
 
 		Connection connection = null;
-
-
 		try {
-
-
 			connection = DBConnectionFactory.getConnection( DBConnectionFactory.PAWS );
 
-			updateAnnotationDataRunStatus( item, connection );
+			updateAnnotationDataAnnDataRunStatus( item, connection );
 			
-
 //		} catch (Exception sqlEx) {
 //			log.error("save:Exception '" + sqlEx.toString() + ".\nSQL = " + insertSQL , sqlEx);
 //			throw sqlEx;
 
 		} finally {
-
-			
 			if (connection != null) {
 				try {
 					connection.close();
@@ -298,8 +270,7 @@ public class AnnotationDataDAO {
 				}
 			}
 		}
-
-
+		
 	}
 			
 
@@ -307,23 +278,12 @@ public class AnnotationDataDAO {
 			+ " SET annotation_data = ?, run_status = ?, last_run_date = NOW()"
 			+ " WHERE sequence_id = ? AND annotation_type_id = ? AND ncbi_taxonomy_id = ? ";
 
-
-
-	//CREATE TABLE annotation_data (
-//			  sequence_id INT UNSIGNED NOT NULL,
-//			  annotation_type_id INT UNSIGNED NOT NULL,
-//			  ncbi_taxonomy_id INT UNSIGNED NOT NULL,
-//			  run_status ENUM('submitted','complete','fail') NOT NULL,
-//			  last_run_date DATETIME NOT NULL,
-//			  annotation_data LONGTEXT NULL,
-
-
 	/**
 	 * @param item
 	 * @return
 	 * @throws Throwable
 	 */
-	public void updateAnnotationDataRunStatus( AnnotationDataDTO item, Connection connection ) throws Exception {
+	public void updateAnnotationDataAnnDataRunStatus( AnnotationDataDTO item, Connection connection ) throws Exception {
 
 //		Connection connection = null;
 
@@ -334,7 +294,7 @@ public class AnnotationDataDAO {
 		try {
 
 
-//			connection = DBConnectionFactory.getConnection( DBConnectionFactory.CROSSLINKS );
+//			connection = DBConnectionFactory.getConnection( DBConnectionFactory.PAWS );
 
 			pstmt = connection.prepareStatement( updateAnnotationDataRunStatusSQL );
 
@@ -357,18 +317,9 @@ public class AnnotationDataDAO {
 			if ( rowsUpdated == 0 ) {
 
 			}
-//
-//			rsGenKeys = pstmt.getGeneratedKeys();
-//
-//			if ( rsGenKeys.next() ) {
-//
-//				item.setId( rsGenKeys.getInt( 1 ) );
-//			}
-
-
 
 		} catch (Exception sqlEx) {
-			log.error("updateAnnotationDataRunStatus: Exception '" + sqlEx.toString() + ".\nSQL = " + updateAnnotationDataRunStatusSQL , sqlEx);
+			log.error("updateAnnotationDataAnnDataRunStatus: Exception '" + sqlEx.toString() + ".\nSQL = " + updateAnnotationDataRunStatusSQL , sqlEx);
 			throw sqlEx;
 
 		} finally {

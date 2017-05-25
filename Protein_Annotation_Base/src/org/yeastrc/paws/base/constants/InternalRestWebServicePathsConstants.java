@@ -10,9 +10,26 @@ public class InternalRestWebServicePathsConstants {
 	
 	//  Internal Rest Service Path Prefix
 	
-	public static final String INTERNAL_REST_SERVICE_PREFIX = "internal_only/";
+	public static final String INTERNAL_REST_EXTENSION_BASE_SERVICES = "/services/";
+	
+	public static final String INTERNAL_REST_EXTENSION_BASE_INTERNAL_ONLY = "internal_only";
 
-	public static final String INTERNAL_SAVE_ANNOTATION_JSON_TO_DB = INTERNAL_REST_SERVICE_PREFIX + "saveAnnotationJSONToDB";
-	public static final String INTERNAL_IS_PROCESSED = INTERNAL_REST_SERVICE_PREFIX + "isProcessed";
+	public static final String INTERNAL_GET_DATA_TO_PROCESS = "/getDataToProcess";
+	public static final String INTERNAL_SAVE_ANNOTATION_JSON_TO_DB = "/saveAnnotationJSONToDB";
 
+
+	
+	//  Combined Strings for the client modules to use
+	
+	public static final String SERVER_URL_EXTENSION__GET_DATA_TO_PROCESS = 
+			INTERNAL_REST_EXTENSION_BASE_SERVICES
+			+ INTERNAL_REST_EXTENSION_BASE_INTERNAL_ONLY 
+			+ INTERNAL_GET_DATA_TO_PROCESS;
+	
+	public static final String SERVER_URL_EXTENSION__SAVE_RESULTS = 
+			INTERNAL_REST_EXTENSION_BASE_SERVICES
+			+ INTERNAL_REST_EXTENSION_BASE_INTERNAL_ONLY 
+			+ INTERNAL_SAVE_ANNOTATION_JSON_TO_DB;
+	
+	
 }

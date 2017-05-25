@@ -158,6 +158,25 @@
         </logger>
         -->
 
+        <logger name="org.yeastrc.paws.www.service.GetOrSubmitCommonDataService" additivity="false">
+                <level value="debug"/>
+                <appender-ref ref="ROLL" />
+                <appender-ref ref="ROLL_ERROR" />
+        </logger>
+
+
+
+        <logger name="org.yeastrc.paws.www.service.InternalSaveAnnotationJSONToDBService" additivity="false">
+                <level value="debug"/>
+                <appender-ref ref="ROLL" />
+                <appender-ref ref="ROLL_ERROR" />
+        </logger>
+
+        <logger name="org.yeastrc.paws.www.internal_webservices.InternalSaveAnnotationJSONToDBWebservice" additivity="false">
+                <level value="debug"/>
+                <appender-ref ref="ROLL" />
+                <appender-ref ref="ROLL_ERROR" />
+        </logger>
 
 
     <!--                           -->

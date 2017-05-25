@@ -8,10 +8,16 @@ import java.util.Date;
  */
 public class AnnotationProcessingTrackingDTO {
 
+	private int id;
 	private int sequenceId;
 	private int annotationTypeId;
 	private int ncbiTaxonomyId;
 	private int jobcenterRequestId;
+	
+	private String requestingIP;
+	private boolean batchRequest;
+	private String batchRequestId;
+
 	private String runStatus;
 	private Date lastRunDate;
 	
@@ -52,15 +58,29 @@ public class AnnotationProcessingTrackingDTO {
 	public void setLastRunDate(Date lastRunDate) {
 		this.lastRunDate = lastRunDate;
 	}
+	public int getId() {
+		return id;
+	}
+	public void setId(int id) {
+		this.id = id;
+	}
+	public String getRequestingIP() {
+		return requestingIP;
+	}
+	public void setRequestingIP(String requestingIP) {
+		this.requestingIP = requestingIP;
+	}
+	public boolean isBatchRequest() {
+		return batchRequest;
+	}
+	public void setBatchRequest(boolean batchRequest) {
+		this.batchRequest = batchRequest;
+	}
+	public String getBatchRequestId() {
+		return batchRequestId;
+	}
+	public void setBatchRequestId(String batchRequestId) {
+		this.batchRequestId = batchRequestId;
+	}
 	
 }
-
-
-//
-//CREATE TABLE annotation_processing_tracking (
-//  sequence_id INT UNSIGNED NOT NULL,
-//  annotation_type_id INT UNSIGNED NOT NULL,
-//  ncbi_taxonomy_id INT UNSIGNED NOT NULL,
-//  jobcenter_request_id INT UNSIGNED NOT NULL,
-//  run_status ENUM('submitted','complete','fail') NOT NULL,
-//  last_update_date DATETIME NOT NULL,

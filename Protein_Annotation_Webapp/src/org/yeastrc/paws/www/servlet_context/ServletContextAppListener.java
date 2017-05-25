@@ -45,23 +45,22 @@ public class ServletContextAppListener extends HttpServlet implements ServletCon
 		
 		
 		
-		String sendResultsURL = null;
+		String serverBaseUrl = null;
 		
 		try {
-			sendResultsURL = ConfigSystemDAO.getInstance().getValueFromKey( ConfigSystemsKeysConstants.SERVER_URL_FOR_MODULE_DATA_KEY );
+			serverBaseUrl = ConfigSystemDAO.getInstance().getValueFromKey( ConfigSystemsKeysConstants.SERVER_BASE_URL_FOR_JC_MODULE_DATA_KEY );
 			
 		} catch (Exception e) {
 
-			String msg = "Failed to get sendResultsURL from ConfigSystemDAO for key '" + ConfigSystemsKeysConstants.SERVER_URL_FOR_MODULE_DATA_KEY + "'." ;
-
+			String msg = "Failed to get sendResultsURL from ConfigSystemDAO for key '" + ConfigSystemsKeysConstants.SERVER_BASE_URL_FOR_JC_MODULE_DATA_KEY + "'." ;
 			log.error( msg, e );
 			
 			throw new RuntimeException( msg, e );
 		}
 		
-		if ( sendResultsURL == null ) {
+		if ( serverBaseUrl == null ) {
 			
-			String msg = "Failed to get sendResultsURL from ConfigSystemDAO for key '" + ConfigSystemsKeysConstants.SERVER_URL_FOR_MODULE_DATA_KEY + "'." ;
+			String msg = "Failed to get serverBaseUrl from ConfigSystemDAO for key '" + ConfigSystemsKeysConstants.SERVER_BASE_URL_FOR_JC_MODULE_DATA_KEY + "'." ;
 
 			log.error( msg );
 			

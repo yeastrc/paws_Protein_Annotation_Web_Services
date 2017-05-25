@@ -46,12 +46,6 @@ public class SequenceDAO {
 			
 			conn = DBConnectionFactory.getConnection( DBConnectionFactory.PAWS );
 
-//			CREATE TABLE IF NOT EXISTS `paws`.`sequence` (
-//					  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-//					  `sequence` MEDIUMTEXT NULL,
-
-			
-			
 			pstmt = conn.prepareStatement( sql );
 			
 			int counter = 0;
@@ -146,18 +140,14 @@ public class SequenceDAO {
 		ResultSet rs = null;
 		
 
-		final String sql = "SELECT id FROM sequence WHERE sequence = ? ";
+		final String sql = "SELECT id FROM sequence WHERE sequence = ? ORDER BY id LIMIT 1 ";
+		
+		//  ORDER BY id to make it deterministic to return the smallest id for this sequence string
 
 		try {
 			
 //			conn = DBConnectionFactory.getConnection( DBConnectionFactory.PAWS );
 
-//			CREATE TABLE IF NOT EXISTS `paws`.`sequence` (
-//					  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-//					  `sequence` MEDIUMTEXT NULL,
-
-			
-			
 			pstmt = conn.prepareStatement( sql );
 			
 			int counter = 0;
@@ -301,18 +291,9 @@ public class SequenceDAO {
 
 	}
 
-
-
-
 	private static String insertSQL = "INSERT INTO sequence " 
 			+ " ( sequence )"
 			+ " VALUES ( ? )";
-
-
-
-//	CREATE TABLE IF NOT EXISTS `paws`.`sequence` (
-//			  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-//			  `sequence` MEDIUMTEXT NULL,
 
 	
 	/**
@@ -401,13 +382,6 @@ public class SequenceDAO {
 
 
 	private static String deleteSQL = "DELETE FROM sequence WHERE id = ?"; 
-
-
-
-//	CREATE TABLE IF NOT EXISTS `paws`.`sequence` (
-//			  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-//			  `sequence` MEDIUMTEXT NULL,
-
 	
 	/**
 	 * @param id
